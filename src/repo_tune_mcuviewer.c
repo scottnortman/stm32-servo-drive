@@ -1,6 +1,7 @@
 // MCUViewer is an observer and command mailbox; the repository PI remains the controller.
 #include "repo_tune_link.h"
 #include "repo_tune_mcuviewer.h"
+#include "tune_gain_store.h"
 #include "stm32f4xx.h"
 #include "recorder.h"
 
@@ -9,13 +10,14 @@ volatile float g_tune_kp=0.2f,g_tune_ki=50,g_tune_f_start=5,g_tune_f_end=200;
 volatile float g_tune_duration=1,g_tune_voltage_limit=0.75f;
 // RAM interface version also keeps editable scalars away from the SRAM boundary
 // that MCUViewer 1.4 currently excludes during automatic address resolution.
-volatile uint32_t g_tune_interface_version=0x00010001u;
+volatile uint32_t g_tune_interface_version=0x00010002u;
 volatile uint32_t g_tune_apply_seq,g_tune_start_seq,g_tune_stop_seq;
+volatile uint32_t g_tune_nv_save_seq,g_tune_nv_status;
 volatile float g_tune_reference,g_tune_measured,g_tune_cross_current,g_tune_voltage;
 volatile uint32_t g_tune_saturated,g_tune_state,g_tune_reason,g_tune_result;
 volatile uint32_t g_tune_recorder_max_cycles,g_tune_recorder_fault;
 static CurrentTuning tune;
-static uint32_t applied,started,stopped;
+static uint32_t applied,started,stopped,saved;
 static bool start_requested,stop_requested,config_ok;
 
 static CurrentTuneConfig requested(void)
@@ -25,9 +27,12 @@ static CurrentTuneConfig requested(void)
 }
 void repo_tune_init(void)
 {
+    float kp,ki;
+    g_tune_nv_status=tune_gain_load(tune_gain_stm32_flash(),&kp,&ki);
+    if(g_tune_nv_status==TUNE_GAIN_LOADED) { g_tune_kp=kp; g_tune_ki=ki; }
     const CurrentTuneConfig p=requested();
     current_tuning_init(&tune,&p);
-    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010001u;
+    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010002u;
 }
 static bool same_experiment(const CurrentTuneConfig *a,const CurrentTuneConfig *b)
 {
@@ -61,6 +66,17 @@ void repo_tune_poll(uint32_t now,bool armed,uint32_t reason,uint32_t irq_cycles)
             }
             __set_PRIMASK(mask);
         }
+    }
+    if(g_tune_nv_save_seq!=saved) {
+        saved=g_tune_nv_save_seq;
+        const bool safe=!armed && !tune.active && !start_requested &&
+            (reason==0u || reason==1u || reason==9u) &&
+            (GPIOB->ODR & 1u)==0u &&
+            (GPIOC->ODR & ((1u<<6)|(1u<<7)|(1u<<9)))==0u &&
+            (TIM1->BDTR & TIM_BDTR_MOE)==0u &&
+            config_ok && g_tune_kp==tune.config.kp && g_tune_ki==tune.config.ki;
+        g_tune_nv_status=safe ? tune_gain_save(tune_gain_stm32_flash(),
+            tune.config.kp,tune.config.ki) : TUNE_GAIN_REJECTED;
     }
     if(g_tune_start_seq!=started) {
         started=g_tune_start_seq;

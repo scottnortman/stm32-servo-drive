@@ -1,0 +1,340 @@
+{
+  "format": "mcuviewer-project",
+  "schema_version": 3,
+  "app_version": "1.4.0",
+  "id": "341cddca-1e72-49a6-be93-62cf2438cc74",
+  "elf": {
+    "path": "../../build-bringup-arm/repo-current-tuning.elf"
+  },
+  "viewer": {
+    "sample_frequency_hz": 100,
+    "recorder_enabled": true,
+    "probe": {
+      "speed_khz": 1000,
+      "keep_connection": false
+    }
+  },
+  "trace": {
+    "channels": [
+      {
+        "name": "CH0"
+      },
+      {
+        "name": "CH1"
+      },
+      {
+        "name": "CH2"
+      },
+      {
+        "name": "CH3"
+      },
+      {
+        "name": "CH4"
+      },
+      {
+        "name": "CH5"
+      },
+      {
+        "name": "CH6"
+      },
+      {
+        "name": "CH7"
+      },
+      {
+        "name": "CH8"
+      },
+      {
+        "name": "CH9"
+      }
+    ]
+  },
+  "machine": {
+    "viewer_probe_serial": "066DFF514988525067173049"
+  },
+  "variables": [
+    {
+      "name": "g_tune_amplitude",
+      "address": "0x2000001C",
+      "type": "f32",
+      "color": "#879EAAE4",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.0,
+        "max": 6.25
+      }
+    },
+    {
+      "name": "g_tune_apply_seq",
+      "address": "0x200001C4",
+      "type": "u32",
+      "color": "#6406B27D"
+    },
+    {
+      "name": "g_tune_axis",
+      "address": "0x200001C8",
+      "type": "f32",
+      "color": "#9C6E61A9",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.0
+      }
+    },
+    {
+      "name": "g_tune_cross_current",
+      "address": "0x200001A8",
+      "type": "f32",
+      "color": "#AB9E636D"
+    },
+    {
+      "name": "g_tune_duration",
+      "address": "0x20000008",
+      "type": "f32",
+      "color": "#9B2AD29A",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.1,
+        "max": 10.0
+      }
+    },
+    {
+      "name": "g_tune_ki",
+      "address": "0x20000014",
+      "type": "f32",
+      "color": "#9805043F",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.0,
+        "max": 10000.0
+      }
+    },
+    {
+      "name": "g_tune_kp",
+      "address": "0x20000018",
+      "type": "f32",
+      "color": "#30A60052",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.0,
+        "max": 10.0
+      }
+    },
+    {
+      "name": "g_tune_measured",
+      "address": "0x200001AC",
+      "type": "f32",
+      "color": "#AAD24265"
+    },
+    {
+      "name": "g_tune_mode",
+      "address": "0x20000020",
+      "type": "f32",
+      "color": "#AC0FBFA2",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.0,
+        "max": 3.0
+      }
+    },
+    {
+      "name": "g_tune_nv_save_seq",
+      "address": "0x200001B8",
+      "type": "u32",
+      "color": "#8C8F60C8"
+    },
+    {
+      "name": "g_tune_nv_status",
+      "address": "0x200001B4",
+      "type": "u32",
+      "color": "#47EB11A7"
+    },
+    {
+      "name": "g_tune_reason",
+      "address": "0x20000198",
+      "type": "u32",
+      "color": "#6F084C2D"
+    },
+    {
+      "name": "g_tune_reference",
+      "address": "0x200001B0",
+      "type": "f32",
+      "color": "#E28AFFED"
+    },
+    {
+      "name": "g_tune_result",
+      "address": "0x20000194",
+      "type": "u32",
+      "color": "#0B57BCF0"
+    },
+    {
+      "name": "g_tune_saturated",
+      "address": "0x200001A0",
+      "type": "u32",
+      "color": "#A5903144"
+    },
+    {
+      "name": "g_tune_start_seq",
+      "address": "0x200001C0",
+      "type": "u32",
+      "color": "#2DB0837B"
+    },
+    {
+      "name": "g_tune_state",
+      "address": "0x2000019C",
+      "type": "u32",
+      "color": "#F65806DF"
+    },
+    {
+      "name": "g_tune_stop_seq",
+      "address": "0x200001BC",
+      "type": "u32",
+      "color": "#EECC8BE3"
+    },
+    {
+      "name": "g_tune_voltage",
+      "address": "0x200001A4",
+      "type": "f32",
+      "color": "#F673EA65"
+    },
+    {
+      "name": "g_tune_voltage_limit",
+      "address": "0x20000004",
+      "type": "f32",
+      "color": "#94AD2CD0",
+      "write_limits": {
+        "enabled": true,
+        "min": 0.001,
+        "max": 4.0
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "20 kHz current step - five signals",
+      "acquisition": "recorder",
+      "recorder": {
+        "trigger": {
+          "enabled": true,
+          "source": "g_tune_reference",
+          "level": 0.25,
+          "pre_trigger_samples": 200
+        }
+      },
+      "plots": [
+        {
+          "name": "Control voltage (V) and saturation",
+          "series": [
+            {
+              "variable": "g_tune_saturated"
+            },
+            {
+              "variable": "g_tune_voltage"
+            }
+          ]
+        },
+        {
+          "name": "Step response (A)",
+          "series": [
+            {
+              "variable": "g_tune_cross_current"
+            },
+            {
+              "variable": "g_tune_measured"
+            },
+            {
+              "variable": "g_tune_reference"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Live current and controls",
+      "plots": [
+        {
+          "name": "Current (A)",
+          "series": [
+            {
+              "variable": "g_tune_cross_current"
+            },
+            {
+              "variable": "g_tune_measured"
+            },
+            {
+              "variable": "g_tune_reference"
+            }
+          ]
+        },
+        {
+          "name": "Parameters and commands",
+          "type": "table",
+          "series": [
+            {
+              "variable": "g_tune_amplitude"
+            },
+            {
+              "variable": "g_tune_apply_seq"
+            },
+            {
+              "variable": "g_tune_axis"
+            },
+            {
+              "variable": "g_tune_duration"
+            },
+            {
+              "variable": "g_tune_ki"
+            },
+            {
+              "variable": "g_tune_kp"
+            },
+            {
+              "variable": "g_tune_mode"
+            },
+            {
+              "variable": "g_tune_nv_save_seq"
+            },
+            {
+              "variable": "g_tune_nv_status"
+            },
+            {
+              "variable": "g_tune_reason"
+            },
+            {
+              "variable": "g_tune_result"
+            },
+            {
+              "variable": "g_tune_start_seq"
+            },
+            {
+              "variable": "g_tune_state"
+            },
+            {
+              "variable": "g_tune_stop_seq"
+            },
+            {
+              "variable": "g_tune_voltage_limit"
+            }
+          ]
+        },
+        {
+          "name": "Voltage (V) and saturation",
+          "series": [
+            {
+              "variable": "g_tune_saturated"
+            },
+            {
+              "variable": "g_tune_voltage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "new sampling group",
+      "plots": [
+        {
+          "name": "new plot"
+        }
+      ]
+    }
+  ]
+}

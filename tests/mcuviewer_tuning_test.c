@@ -2,17 +2,28 @@
 #include "repo_tune_mcuviewer.h"
 #include "stm32f4xx.h"
 #include "recorder.h"
+#include "tune_gain_store.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 
 TestDwt test_dwt;
+TestGpio test_gpiob,test_gpioc;
+TestTim test_tim1;
+static uint32_t stored[TUNE_GAIN_FLASH_WORDS];
+static uint32_t nv_read(uint32_t index) {return stored[index];}
+static bool nv_write(uint32_t index,uint32_t value)
+{if((stored[index] & value)!=value) return false;stored[index]&=value;return true;}
+const TuneGainFlash *tune_gain_stm32_flash(void)
+{static const TuneGainFlash flash={nv_read,nv_write};return &flash;}
 extern ____Recorder ____recorder;
 static void poll(bool armed) {repo_tune_poll(0,armed,0,0);}
 int main(void)
 {
+    memset(stored,0xff,sizeof(stored));
     repo_tune_init();
+    assert(g_tune_nv_status==TUNE_GAIN_EMPTY);
     assert(repo_tune_recorder_self_test());
     ++g_tune_start_seq;poll(false);assert(!repo_tune_take_start() && g_tune_result==3);
     poll(true);assert(!repo_tune_take_start()); // no deferred/replayed start
@@ -30,6 +41,27 @@ int main(void)
     assert(repo_tune_take_stop() && !repo_tune_take_start());
     repo_tune_disarm();assert(g_tune_reference==0 && g_tune_voltage==0);
     poll(false);poll(true);assert(!repo_tune_take_start());
+    ++g_tune_nv_save_seq;poll(true);assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    g_tune_kp=0.8f;
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    test_gpiob.ODR=1;
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    test_gpiob.ODR=0;
+    test_gpioc.ODR=1u<<6;
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    test_gpioc.ODR=0;
+    test_tim1.BDTR=TIM_BDTR_MOE;
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    test_tim1.BDTR=0;
+    ++g_tune_nv_save_seq;repo_tune_poll(0,false,2,0);
+    assert(g_tune_nv_status==TUNE_GAIN_REJECTED);
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_SAVED);
+    float kp,ki;
+    assert(tune_gain_load(tune_gain_stm32_flash(),&kp,&ki)==TUNE_GAIN_LOADED);
+    assert(kp==0.8f && ki==50);
+    g_tune_kp=0.2f;repo_tune_init();
+    assert(g_tune_nv_status==TUNE_GAIN_LOADED && g_tune_kp==0.8f && g_tune_ki==50);
     // Exercise the actual vendor sampler with five real scalar addresses.
     volatile void *signals[]={&g_tune_reference,&g_tune_measured,&g_tune_cross_current,
                               &g_tune_voltage,&g_tune_saturated};

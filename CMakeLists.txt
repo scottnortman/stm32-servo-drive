@@ -712,11 +712,14 @@ add_custom_command(TARGET repo-reciprocal-6250ma-4xspeed.elf POST_BUILD
 
 #Live current tuning reuses the verified board entry,PI,PWM and ADC.
 add_executable(repo-current-tuning.elf
-    src/repo_motor_main.c src/repo_reciprocate.c src/current_tuning.c src/repo_tune_mcuviewer.c third_party/mcuviewer_recorder/recorder.c src/loops.c src/pwm.c src/current_feedback.c
+    src/repo_motor_main.c src/repo_reciprocate.c src/current_tuning.c src/repo_tune_mcuviewer.c
+    src/tune_gain_store.c src/tune_gain_store_stm32.c
+    third_party/mcuviewer_recorder/recorder.c src/loops.c src/pwm.c src/current_feedback.c
     src/control.c src/drv8353.c src/clock.c src/system_stm32f4xx.c
     startup/startup_stm32f411xe.s)
 get_target_property(REPO_TUNING_LINK_OPTIONS drv8353-bringup.elf LINK_OPTIONS)
 list(TRANSFORM REPO_TUNING_LINK_OPTIONS REPLACE "drv8353-bringup.map" "repo-current-tuning.map")
+list(TRANSFORM REPO_TUNING_LINK_OPTIONS REPLACE "memory.ld" "memory-tuning.ld")
 target_include_directories(repo-current-tuning.elf PRIVATE ${DRV_BRINGUP_INCLUDES} third_party/mcuviewer_recorder)
 target_compile_definitions(repo-current-tuning.elf PRIVATE STM32F411xE REPO_MOTOR_BENCH REPO_RECIPROCAL REPO_DOUBLE_CURRENT REPO_CURRENT_5000MA REPO_RECIP_QUAD_SPEED REPO_CURRENT_6250MA REPO_CURRENT_TUNING REPO_MCUVIEWER SHUNT_GAIN=20.0f)
 target_compile_options(repo-current-tuning.elf PRIVATE ${DRV_BRINGUP_COMPILE_OPTIONS})
@@ -725,7 +728,7 @@ target_compile_options(repo-current-tuning.elf PRIVATE ${DRV_BRINGUP_COMPILE_OPT
 set_source_files_properties(src/repo_tune_mcuviewer.c PROPERTIES COMPILE_OPTIONS "-O2")
 target_link_options(repo-current-tuning.elf PRIVATE ${REPO_TUNING_LINK_OPTIONS})
 target_link_libraries(repo-current-tuning.elf PRIVATE gcc m)
-set_property(TARGET repo-current-tuning.elf APPEND PROPERTY LINK_DEPENDS ${LDSCRIPT})
+set_property(TARGET repo-current-tuning.elf APPEND PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker/memory-tuning.ld)
 add_custom_command(TARGET repo-current-tuning.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:repo-current-tuning.elf> ${CMAKE_BINARY_DIR}/repo-current-tuning.hex
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:repo-current-tuning.elf> ${CMAKE_BINARY_DIR}/repo-current-tuning.bin

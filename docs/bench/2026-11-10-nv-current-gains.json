@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-11-10T17:27:42-05:00",
+  "board": "NUCLEO-F411RE + DRV8353RS-EVM + GEMS GM42BLF60-240",
+  "evm_power": "user confirmed OFF before programming and reset; remained OFF through NV validation",
+  "programming": "STM32CubeProgrammer v2.19.0, ST-LINK 066DFF514988525067173049, normal SWD 950 kHz, verified HEX, erased sectors 0 and 1 only, software reset",
+  "flashed_image": {
+    "elf": "build-bringup-arm\\repo-current-tuning.elf",
+    "elf_sha256": "3a36a8a0003557fe33eafba5e4d6fe91a2e37ef351f074e71a42c8cdb772e28e",
+    "hex": "build-bringup-arm\\repo-current-tuning.hex",
+    "hex_sha256": "f00cd902bc01702359b97b69529b6cc0d82cac9af83cbcffea0960f47ee69823",
+    "hex_address_range": [
+      "0x08000000",
+      "0x08004fbb"
+    ]
+  },
+  "rollback_image": {
+    "elf_sha256": "bb8e48d84d50fae38cc25a1f557dceebeee2fa320f5d96731e6fca8a3b2918ad",
+    "hex_sha256": "1edbf558f002cb3dadb908f5f7b9c5e12a5c9ea3b3e48ab1d91432f08f5d591c",
+    "archive_pointer": "D:/git/jnzim/stm32-servo-drive/outputs/checkpoints/latest-pi-tuning.json"
+  },
+  "reserved_sector": "STM32F411 sector 7, 0x08060000..0x0807ffff; first record was erased (all 0xffffffff)",
+  "boot_before_save": {
+    "self_test": 1,
+    "recorder_fault": 0,
+    "recorder_max_cycles": 522,
+    "state": 0,
+    "reason": 0,
+    "nv_status": 0,
+    "kp": 0.2,
+    "ki": 50,
+    "reference_A": 0,
+    "voltage_V": 0,
+    "enable_inls_moe_low": true,
+    "cpu_cfsr": 0
+  },
+  "save": {
+    "applied_kp": 0.8,
+    "applied_ki": 2000,
+    "apply_seq": 1,
+    "save_seq": 1,
+    "nv_status": 2,
+    "state": 0,
+    "reference_A": 0,
+    "voltage_V": 0,
+    "flash_words_at_0x08060000": [
+      "0x47454d53",
+      "0x00000001",
+      "0x3f4ccccd",
+      "0x44fa0000",
+      "0x8b89b255",
+      "0xa55a5aa5"
+    ],
+    "independent_crc32_matches": true
+  },
+  "reset_after_save": {
+    "kp": 0.8,
+    "ki": 2000,
+    "nv_status": 1,
+    "save_seq": 0,
+    "apply_seq": 0,
+    "self_test": 1,
+    "recorder_fault": 0,
+    "recorder_max_cycles": 522,
+    "state": 0,
+    "reason": 0,
+    "reference_A": 0,
+    "voltage_V": 0,
+    "saturated": 0,
+    "enable_inls_moe_low": true,
+    "cpu_cfsr": 0
+  },
+  "validation_scope": "Flash save, readback, and boot reload checked with EVM power off. No powered current/voltage experiment on this integrated image."
+}

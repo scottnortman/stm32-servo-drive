@@ -1,18 +1,19 @@
 # MCUViewer FREE current-loop tuning
 
-Integration note: the captures and tuned gains below were measured before the
-latest upstream merge. See [integration notes](UPSTREAM_INTEGRATION.md) for the
-build-profile compatibility checks and the pending hardware revalidation.
+Integration note: the powered captures and tuned gains below were measured
+before the latest upstream merge. The integrated tuning image is now flashed,
+but its powered loop response has not been remeasured. See
+[integration notes](UPSTREAM_INTEGRATION.md) for the build-profile checks.
 
 Scott selected MCUViewer with ST-LINK and Recorder, free edition: **20 live
 variables, 5 Recorder variables, 5 trace channels**, evaluation only, no expiry,
 community support. Trace is unused. No paid feature is required by this setup.
 
-The confirmed V6 reciprocal image remains the rollback baseline. The new
-`repo-current-tuning` target is flashed and verified. Both small voltage-step
-polarity checks and 0.5 A current steps have been captured on both stationary
-axes. Live parameter editing and five-signal Recorder are working. The motor is
-now disarmed; the final D-axis capture remains visible in MCUViewer.
+The confirmed V6 reciprocal image remains the motion rollback baseline. On the
+earlier pre-integration tuning image, small voltage-step polarity checks and
+0.5 A current steps were captured on both stationary axes. Live parameter
+editing and five-signal Recorder worked. The integrated tuning image has since
+passed disabled-output boot and NV-gain reload with EVM power OFF.
 
 This establishes the tuning interface and initial low-gain tracking, not a
 finished 1 kHz current loop. 100 Hz host polling is only for live trends/edits;
@@ -23,7 +24,8 @@ used in the initial step-report metrics must NOT be used for 1 kHz Bode analysis
 Initial comparison at Kp=0.2 V/A, Ki=50 -> 200 V/(A*s): D rise 34.5 -> 10.15 ms,
 Q rise 30.9 -> 8.15 ms. Final 10 ms means at Ki=200 were D=0.5006 A, Q=0.4996 A,
 with zero saturation samples. Raw noise/peaks and overshoot remain to assess at
-higher bandwidth. Current runtime Ki=200 is RAM-only; reset defaults remain Ki=50.
+higher bandwidth. On that earlier image, runtime Ki=200 was RAM-only and reset
+restored Ki=50.
 See `docs/bench/2026-11-10-current-step-results.json` and
 `outputs/tuning/first-current-steps.png`; full raw JSON and CSV are in outputs/tuning.
 
@@ -41,8 +43,8 @@ pre-integration image with Kp0.8/Ki2000 and the 0.75 V ceiling. Three-sample
 with no saturation or faults. See `bench/2026-11-10-pi-tuning-repeat.json` and its
 raw capture paths. The motor was explicitly disarmed afterward (state0/reason9,
 apply/start17, stop3), and ENABLE/INLs/MOE were verified LOW through read-only
-HOTPLUG. MCUViewer is stopped on live controls; captures and the comparison plot
-are saved separately. This is newer than the displayed-capture endstate below.
+HOTPLUG. Captures and the comparison plot were saved separately. This was the
+last powered endstate before the integrated image was flashed.
 
 The existing repo PI was tuned live from raw 20 kHz captures. Tested on both
 stationary axes with 0.5 A steps and 400/600/800 Hz current references spanning
@@ -68,9 +70,10 @@ sampling/scaling/bridge effects and are starting design estimates, not separatel
 measured motor constants. PI zero placement follows the usual motor RL approach:
 [TI current-PI derivation](https://www.ti.com/document-viewer/lit/html/SSZTCG4/GUID-4EBDE243-F8EA-41D6-8930-1E6BFACE8DEE).
 
-Saved profile: tools/tuning/current-loop-gains.json. Gains are RAM-only; reset
-still restores0.2/50. Loading a .mcuv project does not automatically apply gains.
-After physical USER arming, set requests and increment apply_seq as usual.
+Saved profile: tools/tuning/current-loop-gains.json. Those powered results used
+RAM-only gains on the earlier image. The integrated image now loads the last
+saved pair from flash at boot. Loading a .mcuv project does not change the
+applied gains; to edit them, set requests and increment apply_seq as usual.
 
 Evidence: docs/bench/2026-11-10-pi-tuning-results.json and pi-tuning-post.json;
 raw captures outputs/tuning/tune-*.json and tone-*.json. Comparison graphic:
@@ -80,17 +83,19 @@ limits requests to0.5A/Kp2/Ki6000, and checks post-test status. It never arms,
 flashes or resets the MCU. It leaves the motor armed/idle between experiments;
 explicit stop_seq/USER is required to disarm when finished.
 
-Endstate: final repeat D-step left visible in MCUViewer; stop_seq2, state0,
+Historical endstate: final repeat D-step left visible in MCUViewer; stop_seq2, state0,
 reason9(intentional host stop), result0. ENABLE/INLs/MOE verified LOW by read-only
 HOTPLUG. No Recorder/CPU fault. Maximum Recorder545cycles/5.45us; full control IRQ
-with tones2571cycles/25.71us within50us period. EVM can still be powered; do not
-flash or reset without a fresh OFF confirmation.
+with tones2571cycles/25.71us within50us period. The integrated image was later
+flashed with EVM power OFF; get fresh OFF confirmation before another flash or
+reset.
 
 ## Open, build and capture
 
 - Project: `tools/tuning/current-loop-free.mcuv`.
-- Matching firmware: `build-bringup/repo-current-tuning.elf` and `.hex`.
-- Build: `cmake --build build-bringup --target repo-current-tuning.elf`.
+- Matching flashed firmware on this PC: `build-bringup-arm/repo-current-tuning.elf`
+  and `.hex` (HEX SHA256 `f00cd902bc01702359b97b69529b6cc0d82cac9af83cbcffea0960f47ee69823`).
+- Build: `cmake --build build-bringup-arm --target repo-current-tuning.elf`.
 - Software tests (WSL): `bash tools/tuning/test-current-tuning.sh`.
 - Optional project regeneration: `python tools/tuning/mcuviewer_project.py` with
   MCUViewer open. Save other projects first: this deliberately creates a new
@@ -120,13 +125,52 @@ default project; temporarily replace a live variable when needed. The same five
 slots can serve later loops. Velocity/position tuning requires rotor feedback,
 which is currently unavailable.
 
-## First bench run
+## Saving current PI gains in MCU flash
 
-1. Stop the old motion with USER, then switch EVM 12 V OFF before programming;
-   programming resets could otherwise re-enter the old motion program. Keep USB
-   connected. Flash the matching HEX and verify boot self-test=1 and ENABLE,
-   INLs and MOE LOW. Inspect `g_tune_recorder_max_cycles` and
-   `g_tune_recorder_fault` read-only before energizing.
+The updated `repo-current-tuning.elf` reserves STM32F411 sector 7
+(`0x08060000..0x0807ffff`) for an append-only gain record. At boot it loads the
+last committed, checksum-checked Kp/Ki pair into the same RAM requests and repo PI
+controller. Empty or damaged storage uses Kp0.2/Ki50; mode, amplitude, duration,
+and the 0.75 V ceiling keep their existing defaults. Boot remains disarmed.
+The integrated image was flashed with EVM power OFF, and Kp0.8/Ki2000 were
+saved and reloaded across a software reset. The exact image, record, and
+disabled-output checks are in `bench/2026-11-10-nv-current-gains.json`.
+Powered current-loop behavior on this image still needs verification.
+
+MCUViewer FREE has 20 live slots. After flashing the matching updated image and
+refreshing its symbol addresses, run
+`python tools/tuning/mcuviewer_project.py --nv --elf build-bringup-arm/repo-current-tuning.elf`
+to create `tools/tuning/current-loop-free-nv.mcuv`. This view replaces only the
+two chirp-frequency requests with `g_tune_nv_save_seq` and `g_tune_nv_status`.
+The standard view remains available for 400/600/800 Hz tones. Project generation
+creates a new project; save other GUI work first. Opening either project does not
+change gains already loaded at boot.
+
+To save a validated pair, apply it through the usual `g_tune_kp`, `g_tune_ki`,
+`g_tune_apply_seq` sequence. Run and evaluate bounded steps, then disarm with
+USER or `g_tune_stop_seq`. Confirm state0 and ENABLE/INLs/MOE LOW. Increment
+`g_tune_nv_save_seq` once. The firmware consumes each sequence value once and
+accepts a save only while disarmed, inactive, with low outputs and no pending
+unapplied gain edit. The saved values are the **applied** gains. Reads on later
+boots need no GUI connection. `g_tune_nv_status`: 0 empty/default, 1 loaded,
+2 saved, 3 rejected, 4 journal full, 5 flash write/verify error, 6 corrupt
+record without a valid predecessor. A failed or interrupted append leaves the
+previous committed pair available. The journal does not auto-erase when full.
+
+Normal image flashing must erase only sectors used by the image. **Mass erase
+will erase saved gains**; keep the JSON gain profile as a recovery copy.
+Flash write and boot reload passed with EVM power OFF. Any later flash/reset
+needs fresh EVM-power-OFF confirmation. The sector layout
+and 32-bit programming mode follow the
+[STM32F411 reference manual](https://www.st.com/resource/en/reference_manual/dm00119316.pdf).
+
+## First powered run on the integrated image
+
+1. The matching integrated image is already flashed. Check self-test=1 and
+   ENABLE, INLs and MOE LOW; inspect `g_tune_recorder_max_cycles` and
+   `g_tune_recorder_fault` read-only before energizing. If replacing the image,
+   stop motion with USER and get fresh EVM-power-OFF confirmation before flashing
+   or resetting; keep USB connected and recheck disabled-output boot afterward.
 2. Options -> Acquisition: enable/detect Recorder. Expected: 50,000 ns,
    32,768 bytes, five variables, version 8.3. Never use these RAM addresses with
    V6 firmware. New firmware starts disabled and waits for USER.
@@ -138,10 +182,12 @@ which is currently unavailable.
    Start Recorder with rising reference trigger at 0.05 V, then increment
    start_seq. Selected current should respond positively; inspect cross current.
    Repeat axis=1. Resolve inconsistent signs/coupling before current control.
-5. Current test defaults: mode=1, axis=0, amplitude=0.5 A, kp=0.2 V/A,
-   ki=50 V/(A*s), duration=1 s, voltage_limit=0.75 V. Apply, restore trigger to
-   0.25 A, start capture, increment start_seq. These are starting gains, not
-   measured GEMS gains. Step rises at 20% of test duration, returns to zero at
+5. For the first powered test on the integrated image, explicitly set and apply
+   mode=1, axis=0, amplitude=0.5 A, kp=0.2 V/A, ki=50 V/(A*s), duration=1 s,
+   voltage_limit=0.75 V; boot currently loads the saved Kp0.8/Ki2000 pair.
+   Restore the trigger to 0.25 A, start capture, increment start_seq. These
+   conservative starting gains precede revalidation on the integrated image.
+   Step rises at 20% of test duration, returns to zero at
    70%, and coasts at the deadline. Another test can reuse the armed state.
    Compare rise, settling, overshoot, cross-axis current and saturation.
 6. USER hold 20 ms or stop_seq fully disarms. Faults also disarm. A fresh

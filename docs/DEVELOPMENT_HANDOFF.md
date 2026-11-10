@@ -64,9 +64,11 @@ axes. Initial 0.5 A current steps were slow. Tuning both gains gave:
   is not full MIMO robustness validation. Larger-current/rotor-angle validation
   remains outstanding.
 
-Gains are **RAM-only**. Reset defaults remain Kp0.2/Ki50. The tested settings are
-recorded in `tools/tuning/current-loop-gains.json`; opening the MCUViewer project
-does not automatically apply them.
+The **older pre-integration image** keeps gains in RAM only. Its reset defaults
+remain Kp0.2/Ki50. The tested settings are recorded in
+`tools/tuning/current-loop-gains.json`; opening the MCUViewer project does not
+automatically apply them. The integrated image adds checked flash persistence;
+see `docs/LIVE_TUNING_FRONTEND.md` for the explicit save procedure and limitations.
 
 Repeat on 2026-11-10 at 16:53 EST used the same pre-integration image through
 MCUViewer, after the user confirmed the bench setup and physically armed USER.
@@ -78,28 +80,41 @@ steps do not remeasure tone response or bandwidth. Raw captures are checked in
 under `docs/bench/current-tuning/reproduce-20261110T215301Z-*.json`; results and
 post-test diagnostics are in `docs/bench/2026-11-10-pi-tuning-repeat.json`.
 
+The integrated `repo-current-tuning` image was subsequently flashed with EVM
+power OFF after fresh user confirmation. STM32CubeProgrammer verified its HEX and
+erased sectors 0/1 only. Read-only boot checks passed: self-test1, Recorder fault0,
+maximum522cycles, no CPU fault, ENABLE/INLs/MOE LOW. Sector7 was empty, so boot
+initially selected Kp0.2/Ki50. MCUViewer applied the previously measured
+Kp0.8/Ki2000 with state0 and zero output, then explicit `nv_save_seq=1` returned
+status2 (saved). The six-word flash record read back with the correct CRC and
+commit word. A software reset with EVM power still OFF reloaded Kp0.8/Ki2000,
+`nv_status=1`, state0, zero reference/voltage and LOW outputs. Full evidence and
+image hashes are in `docs/bench/2026-11-10-nv-current-gains.json`. The exact
+flashed ELF/HEX are copied to the ignored local archive
+`outputs/checkpoints/nv-current-gains-2026-11-10`.
+This validates **flash persistence and disabled-output boot only**. No powered
+voltage/current experiment has run on the integrated image.
+
 ## Hardware and safety state at handoff
 
-The integrated code has **not** been flashed. The MCU was last left on the
-pre-integration tuning image, fully disarmed: ENABLE, all INLs and PWM MOE LOW;
-self-test passed, no CPU/Recorder fault, intentional frontend stop reason9.
-After the 16:53 EST repeat, runtime settings were mode1, axis1, amplitude0.5 A,
-Kp0.8/Ki2000, duration1 s, voltage ceiling0.75 V, apply/start sequence17 and stop
-sequence3. Recorder maximum remains545cycles, self-test1 and no CPU/Recorder
-fault. MCUViewer is stopped on the live controls in the original baseline
-project; raw step captures and the comparison plot are saved separately. These
-describe the last observation, not a guarantee of the current hardware state.
+The integrated tuning image is now on the MCU. Last observed after the NV-save
+reset: fully disarmed, ENABLE/INLs/MOE LOW, self-test1, Recorder/CPU faults0,
+Kp0.8/Ki2000 loaded from flash, `nv_status=1`, apply/start/stop/save sequences0.
+MCUViewer is stopped on the matching integrated project. The EVM was user-confirmed
+OFF before programming and remained OFF through this verification. These describe
+the last observation, not a guarantee of the current hardware state.
 
-EVM power may still be ON. Get fresh EVM-power-OFF confirmation before programming
-or resets. USER physically arms at zero drive; a GUI command starts each bounded
+Get fresh EVM-power-OFF confirmation before any later programming or reset. USER
+physically arms at zero drive; a GUI command starts each bounded
 experiment. Stop/fault requires USER rearming. Motor remains secured/unloaded,
 Hall leads disconnected. No encoder is currently available. COM3 is the user's
 console; do not seize it. Wiring details are in
 `docs/STM32F411_DRV8353RS_INTEGRATION.md` and the bench guide.
 
-ST-LINK SN: 066DFF514988525067173049. MCUViewer must use an ELF matching the actual
-flashed image. Its currently open project may still refer to the original
-baseline folder. Do not refresh addresses to the new image before flashing it.
+ST-LINK SN: 066DFF514988525067173049. MCUViewer now uses the matching ELF at
+`build-bringup-arm/repo-current-tuning.elf`. Both the standard 20-variable project
+and the 20-variable NV-save view were regenerated with its addresses. Preserve
+the exact rollback baseline ELF/HEX in the original worktree archive.
 
 ## What the upstream merge preserved
 
@@ -120,6 +135,13 @@ under ASan/UBSan; bench/upstream configuration contracts pass. GitHub CI also
 passed host suites and all firmware builds with Arm GNU15.2:
 https://github.com/scottnortman/stm32-servo-drive/actions/runs/42906131378
 
+For the NV change, upstream 23 tests/42 checks and current-tuning/Recorder/profile
+tests passed under ASan/UBSan; new flash-journal tests covered interrupted writes,
+corruption fallback and full storage. `repo-current-tuning.elf` and the separate
+default `fw.elf` built with Arm GNU13.2. Firmware HEX ends at `0x08004fbb`, below
+the reserved `0x08060000` sector. These software checks are separate from the
+powered bench work still pending.
+
 Set `ARM_TOOLCHAIN_BIN_DIR` to the installed Arm GNU `bin` directory, then:
 
 ```sh
@@ -136,11 +158,13 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. Verify the integrated `repo-current-tuning` image on hardware after fresh
-   EVM-OFF confirmation: disabled-output boot/Recorder timing checks, then small
-   signed voltage and current steps. Retain rollback baseline and exact image.
-2. Recheck the tuned pair on this integrated image. Decide whether tested gains
-   should become boot defaults or be loaded explicitly through validated settings.
+1. With EVM 12 V back under the user's control and the motor secured, verify
+   small signed voltage steps on both axes, then bounded 0.5 A current steps
+   on the integrated image. Before the first powered check, explicitly apply
+   conservative Kp0.2/Ki50 in RAM; flash will otherwise load Kp0.8/Ki2000.
+2. Recheck Kp0.8/Ki2000 on the integrated image after polarity/current guards
+   pass. The flash journal's empty, save and reload paths are verified; corruption
+   fallback is host-tested only. Preserve rollback baseline and exact new image.
 3. Extend/verify excitation beyond800Hz for full bandwidth measurements using
    raw20kHz data. Avoid the earlier1ms plotting average for1kHz phase analysis.
 4. Validate higher currents and cross coupling/angle dependence. Actual rotor
@@ -152,7 +176,9 @@ The ignored `CONTEXT.md` has current local session notes. The original folder's
 `CONTEXT.md` contains longer commissioning history. Full source/firmware/capture
 checkpoint archive is referenced by the original folder's
 `outputs/checkpoints/latest-pi-tuning.json`; it also preserves the exact flashed
-tuning image and previous V6 motion image. These local archives are not in Git.
+pre-integration tuning image and previous V6 motion image. The integrated NV
+image is in this worktree's `outputs/checkpoints/nv-current-gains-2026-11-10`.
+These local archives are not in Git.
 
 MCUViewer's local MCP API is `http://localhost:8765/mcp`. On this PC IPv6 localhost
 worked while127.0.0.1 timed out. `mcuviewer_project.connect()` clears old session

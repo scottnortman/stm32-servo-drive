@@ -60,14 +60,17 @@ Set `ARM_TOOLCHAIN_BIN_DIR` to the Arm GNU `bin` directory before configuring.
 Machine-readable validation/image hashes are in
 `docs/bench/2026-11-10-upstream-integration.json`.
 
-**The integrated firmware has NOT been flashed or bench-tested.** The actual MCU
-was left running the earlier, disarmed tuning image. Fresh EVM-power-OFF
-confirmation is required before programming. The default upstream `fw.elf` is
+The integrated `repo-current-tuning` firmware has now been flashed, with fresh
+user EVM-power-OFF confirmation. Its disabled-output boot and explicit NV gain
+save/reload passed with the EVM OFF; powered current-loop tests remain pending.
+See `bench/2026-11-10-nv-current-gains.json`. Fresh EVM-power-OFF confirmation
+is required before any later programming/reset. The default upstream `fw.elf` is
 an AKM/encoder application and is not the standalone GEMS commissioning image.
-Next bench verification should use `repo-current-tuning.elf`, beginning with its
-disabled-output boot checks and small signed-response/current steps. Re-import
-matching ELF addresses into MCUViewer only after selecting/flashing that image.
-The tuned gains remain RAM-only; reset defaults are still Kp0.2/Ki50.
+Next bench verification should begin with small signed-response/current steps.
+The older pre-integration image has RAM-only gains. The flashed integrated
+`repo-current-tuning` image loaded an explicitly saved Kp0.8/Ki2000 pair from
+reserved flash sector 7 after reset, with Kp0.2/Ki50 as the empty/corrupt
+fallback. See `LIVE_TUNING_FRONTEND.md`; powered loop behavior remains untested.
 
 ## Subsequent upstream updates
 
