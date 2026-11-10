@@ -93,10 +93,12 @@ reset.
 ## Open, build and capture
 
 - Project: `tools/tuning/current-loop-free.mcuv`.
-- The flashed 6 A/2.5 s-per-leg image is archived at
-  `outputs/checkpoints/d-axis-reciprocal-6a-2x-continuous-2026-11-10` (HEX
-  SHA256 `b5b8a20624743d3eda93be4116d03286c2b5b75c0be4322067c0c69cf22e66e0`).
-  The `build-bringup-arm` ELF/HEX match this image.
+- The flashed 6 A/2.5 s-per-leg final image is archived at
+  `outputs/checkpoints/d-axis-reciprocal-6a-2x-final-2026-11-10` (HEX SHA256
+  `3cc3917434aa60384802a76706e406b7647559037a1666930921f2d4a19b2387`).
+  The `build-bringup-arm` ELF/HEX match it. The powered trial used the
+  preceding image, archived separately under `d-axis-reciprocal-6a-2x-continuous-2026-11-10`;
+  the final image changed only UART boot text and passed disabled-output boot.
 - Build: `cmake --build build-bringup-arm --target repo-current-tuning.elf`.
 - Software tests (WSL): `bash tools/tuning/test-current-tuning.sh`.
 - Optional project regeneration: `python tools/tuning/mcuviewer_project.py` with
@@ -209,7 +211,7 @@ current averaged 6.000 A with 0.017 A mean absolute error, sampled saturation
 was zero and peak commanded voltage approached 4 V. See
 `bench/2026-11-10-d-axis-reciprocal-6a.json`.
 The 2.5 s-per-leg run completed 18 commanded half moves in about 46 s before
-USER stopped it; Scott said it was working. Current averaged 6.000 A with
+USER stopped it; Scott said it was working and smooth. Current averaged 6.000 A with
 0.018 A mean absolute error. Eleven of 3781 selected downsampled curve points
 flagged vector saturation near the end, and peak commanded D voltage reached
 4.000 V. The post-stop fault and output checks passed; see

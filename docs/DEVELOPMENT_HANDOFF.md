@@ -125,7 +125,7 @@ Actual shaft travel remains unmeasured.
 
 Scott then requested twice the speed again, retaining 6 A and continuous USER
 stop. The new image used 2.5 s per leg and ran about 46 s, completing 18
-commanded half moves before USER stop. Scott said it was working. Selected
+commanded half moves before USER stop. Scott said it was working and smooth. Selected
 current averaged 6.0002 A with 0.0176 A mean absolute error. Eleven of 3781
 downsampled selected points flagged vector saturation near the end; peak D
 command reached 4.000 V. HOTPLUG post-stop: state0/reason1, Recorder fault0,
@@ -143,10 +143,12 @@ ENABLE/INLs/MOE LOW. Matching MCUViewer project was regenerated. Powering the
 EVM apparently reset the MCU between the first disarmed config apply and USER
 arm: the preflight found default step settings while armed at zero drive. A GUI
 stop disarmed it, mode4/6 A/duration0/4 V was reapplied with EVM powered,
-then Scott rearmed and the fast trial ran. The latest observed post-run state
-is disarmed state0/reason1 with outputs LOW and no fault; MCUViewer acquisition
-is STOP. EVM power was last used at 12 V/3.5 A input limit; its present power
-state is not yet confirmed.
+then Scott rearmed and the fast trial ran. The post-run state was disarmed
+state0/reason1 with outputs LOW and no fault; MCUViewer acquisition is STOP.
+Scott subsequently confirmed EVM power OFF. A text-only UART boot-message
+correction was then flashed with sectors0/1 only and verified; HOTPLUG boot
+again showed self-test1, NV 0.8/2000, Recorder fault0, CPU fault0 and
+ENABLE/INLs/MOE LOW. This final exact image has not had a powered retest.
 
 Get fresh EVM-power-OFF confirmation before any later programming or reset. USER
 physically arms at zero drive; a GUI command starts each
@@ -155,11 +157,11 @@ Hall leads disconnected. No encoder is currently available. COM3 is the user's
 console; do not seize it. Wiring details are in
 `docs/STM32F411_DRV8353RS_INTEGRATION.md` and the bench guide.
 
-ST-LINK SN: 066DFF514988525067173049. The build path
-The exact powered 2.5 s image is archived in
+ST-LINK SN: 066DFF514988525067173049. The exact powered 2.5 s image is archived in
 `outputs/checkpoints/d-axis-reciprocal-6a-2x-continuous-2026-11-10`.
-The current build also corrects a UART boot message that otherwise implied
-all tests have a deadline; this text-only update has not been flashed yet.
+The current build and flashed image include the corrected UART boot message
+and are archived in `outputs/checkpoints/d-axis-reciprocal-6a-2x-final-2026-11-10`
+(HEX SHA256 `3cc3917434aa60384802a76706e406b7647559037a1666930921f2d4a19b2387`).
 The 5 s/leg image and its capture are separately archived under
 `outputs/checkpoints/d-axis-reciprocal-6a-continuous-2026-11-10` and
 `outputs/tuning/d-axis-reciprocal-6a-20261110.json`. Preserve the V6 rollback
@@ -220,12 +222,11 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. Record the user's final qualitative smoothness/travel observation if
-   available; the 6 A/2.5 s trial electrically tracked but reached the 4 V
-   ceiling on some late samples. Do not infer actual rotor trajectory from
-   the commanded angle. Obtain fresh EVM-OFF confirmation before any later
-   flash or reset. If the UART text-only image is flashed, verify disabled
-   output/NV load; the powered results above belong to the archived image.
+1. The 6 A/2.5 s trial was observed smooth and electrically tracked, but
+   reached the 4 V ceiling on some late samples. Do not infer actual rotor
+   trajectory from the commanded angle. Obtain fresh EVM-OFF confirmation
+   before any later flash or reset. The powered results belong to the
+   archived pre-UART-text image; the final image passed only disabled boot.
 2. Extend/verify excitation beyond800Hz for full bandwidth measurements using
    raw20kHz data. Avoid the earlier1ms plotting average for1kHz phase analysis.
 3. Validate higher currents and cross coupling/angle dependence. Actual rotor
