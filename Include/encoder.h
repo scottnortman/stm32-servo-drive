@@ -21,8 +21,10 @@ extern volatile EncoderState encoder;
 // Public interface
 // =============================================================================
 void    encoder_init(void);
-void    encoder_zero(void);
 void    encoder_update(uint32_t timestamp_ms);
 
 int32_t encoder_get_position(void);
 int32_t encoder_get_velocity(void);
+
+// Electrical angle [0, 2*pi) relative to the alignment offset (counts).
+float   encoder_elec_angle(int32_t offset);

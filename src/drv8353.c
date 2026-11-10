@@ -459,7 +459,7 @@ bool drv8353_write_read_test(void)
 //
 // Field encodings below are from the DRV8353 datasheet (SLVSDJ3) register
 // tables. IDRIVE/VDS_LVL codes: VERIFY against your datasheet revision's
-// tables once before first powered FET switching. Harmless until PWM wired.
+// tables if the configuration is ever changed.
 //
 // Configuration intent:
 //   0x02  3x PWM mode (INHx = PWM, INLx = per-phase enable)

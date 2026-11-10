@@ -13,16 +13,19 @@ add_executable(fw.elf
     src/spi.c
     src/protocol.c
     src/encoder.c
-    src/ringBuffer.c
     src/control.c
     src/drive.c
     src/loops.c
     src/clock.c
-    src/tim1.c
     src/pwm.c
+    src/svpwm.c
     src/drv8353.c
     src/system_stm32f4xx.c
     src/current_feedback.c
+    src/isr_timing.c
+    src/observer.c
+    src/trap_gen.c
+    src/minjerk_gen.c
     src/sysid/foc_sysid.c
     src/sysid/foc_trajectory.c
     startup/startup_stm32f411xe.s
@@ -49,7 +52,7 @@ target_compile_options(fw.elf PRIVATE
         -fno-builtin
         -fdata-sections
         -ffunction-sections
-        -Og
+        -O2
         -g3
         -Wall
         -Wextra

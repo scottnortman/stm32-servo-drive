@@ -1,5 +1,9 @@
 # MCUViewer FREE current-loop tuning
 
+Integration note: the captures and tuned gains below were measured before the
+latest upstream merge. See [integration notes](UPSTREAM_INTEGRATION.md) for the
+build-profile compatibility checks and the pending hardware revalidation.
+
 Scott selected MCUViewer with ST-LINK and Recorder, free edition: **20 live
 variables, 5 Recorder variables, 5 trace channels**, evaluation only, no expiry,
 community support. Trace is unused. No paid feature is required by this setup.

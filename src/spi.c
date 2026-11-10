@@ -1,14 +1,27 @@
-// spi.c — SPI2 slave TX/RX DMA sysid latest-sample bring-up
+// spi.c — SPI2 slave link to the Pi: one 32-byte full-duplex frame per
+// transaction, telemetry out (DMA1 Stream4), MoveCmd in (DMA1 Stream3).
 //
-// TX DMA is CIRC (circular) — loops over the last fully-written buffer.
-// TIM1 ISR writes to the inactive ping-pong buffer and flips the index.
-// CIRC picks up the new buffer on the next loop automatically.
-// No CS-synchronized rearm needed.
+// CS frames every transaction. On the CS rising edge (EXTI12) the handler
+// parses the frame just received, then re-arms the link for the next one:
+// SPI2 is reset (the only way to drop the byte it already pulled into its
+// TX buffer), the latest telemetry is copied into the TX buffer, and both
+// DMAs restart at byte 0. So every transaction starts on a frame boundary,
+// and a frame is never rewritten while it is being sent.
+//
+// The control loop never touches the TX buffer: it publishes into a
+// ping-pong staging pair, and the CS handler copies the latest one.
+//
+// The re-arm has to finish before the Pi starts the next transaction, so
+// the Pi holds CS high for at least SPI2_MIN_CS_GAP_US (protocol.h).
 
 #include "spi.h"
+#include "isr_timing.h"
 #include "board_f411.h"
 #include "protocol.h"
+#include "config.h"
 #include "stm32f4xx.h"
+#include "foc_trajectory.h"
+#include "drive.h"
 
 #include <stdint.h>
 #include <stddef.h>
@@ -16,49 +29,38 @@
 
 
 /* =============================================================================
- * Legacy globals
+ * Debug counters (read with the debugger)
  * =============================================================================*/
 
-volatile uint32_t cnt_data      = 0;
-volatile uint32_t cnt_error     = 0;
-volatile uint32_t cnt_telem     = 0;
-volatile uint32_t cnt_block_hdr = 0;
-volatile uint32_t cnt_cs        = 0;
-volatile uint32_t cnt_tx_rearm  = 0;
-
-volatile uint8_t ready_asserted = 0;
-
-volatile TelemetryFrame telem_buf[2];
-volatile uint8_t        telem_write_idx = 0;
-
-volatile uint16_t expected_samples = 0;
+volatile uint32_t cnt_telem      = 0;   /* whole 32-byte RX frames        */
+volatile uint32_t cnt_error      = 0;   /* MoveCmd CRC failures           */
+volatile uint32_t cnt_cs         = 0;   /* CS rising edges                */
+volatile uint32_t cnt_rx_short   = 0;   /* transactions under 32 bytes    */
+volatile uint32_t cnt_rearm_late = 0;   /* re-arm finished with CS low    */
 
 
 /* =============================================================================
  * SPI DMA buffers
  * =============================================================================*/
 
+/*
+ * Both DMAs run one frame and stop; the CS handler re-arms them, so the
+ * frame in each buffer is stable while the handler works on it.
+ */
 static volatile uint8_t spi2_rx_buf[SPI2_TRANSACTION_BYTES];
+static uint8_t spi2_tx_buf[SPI2_TRANSACTION_BYTES] __attribute__((aligned(4)));
 
 /*
- * Ping-pong TX buffers.
- *
- * TIM1 ISR writes to spi_tx_buf[spi_tx_write_idx ^ 1] (inactive buffer),
- * then flips spi_tx_write_idx after __DMB().
- *
- * TX DMA runs CIRC over a flat 64-byte region covering both buffers.
- * It continuously loops, always reading the most recently completed frame.
- * Occasional mid-frame reads are acceptable for latest-sample telemetry.
+ * Telemetry staging, ping-pong. The producer (TIM1 ISR in sysid, SysTick in
+ * trajectory mode) writes the slot that is not published, then flips
+ * tx_stage_pub; the CS handler copies the published slot. A producer
+ * preempting that copy writes the other slot, so the copy is never torn.
  */
-static SysIdSample spi_tx_buf[2];
-static volatile uint8_t spi_tx_write_idx = 0;
+static uint8_t tx_stage[2][SPI2_TRANSACTION_BYTES] __attribute__((aligned(4)));
+static volatile uint8_t tx_stage_pub = 0u;
 
 
-/* =============================================================================
- * Sysid sequence
- * =============================================================================*/
-
-static volatile uint32_t sysid_seq = 0;
+extern volatile uint32_t g_control_tick;   /* main.c -- 20kHz, 50us per count */
 
 
 typedef char SysIdSample_must_be_32_bytes[
@@ -91,15 +93,22 @@ static void spi2_dma_clear_flags(void)
 
 
 /* =============================================================================
- * Public sysid update API
- *
- * Called from TIM1 ISR at 20 kHz.
- * Writes to the inactive buffer (index ^ 1).
- * __DMB() (Data Memory Barrier) ensures all field writes are visible
- * before the index flip.
- * CIRC DMA picks up the new buffer on its next loop.
+ * Telemetry staging — see tx_stage above
  * =============================================================================*/
 
+static void spi_tx_publish(const void *frame)
+{
+    uint32_t w = tx_stage_pub ^ 1u;
+
+    memcpy(tx_stage[w], frame, SPI2_TRANSACTION_BYTES);
+    __DMB();
+    tx_stage_pub = (uint8_t)w;
+}
+
+
+/* =============================================================================
+ * spi_sysid_update_latest — sysid telemetry, called from the TIM1 ISR
+ * =============================================================================*/
 void spi_sysid_update_latest(int16_t ia_mA,
                              int16_t ib_mA,
                              int16_t ic_mA,
@@ -114,10 +123,10 @@ void spi_sysid_update_latest(int16_t ia_mA,
                              uint16_t flags,
                              uint16_t test_id)
 {
-    uint8_t idx = spi_tx_write_idx ^ 1u;
-    SysIdSample *s = &spi_tx_buf[idx];
+    SysIdSample sample;
+    SysIdSample *s = &sample;
 
-    s->t          = sysid_seq++;
+    s->t          = g_control_tick;   /* exact 50us timestamp, not a sequence */
     s->ia_mA      = ia_mA;
     s->ib_mA      = ib_mA;
     s->ic_mA      = ic_mA;
@@ -130,11 +139,60 @@ void spi_sysid_update_latest(int16_t ia_mA,
     s->adc_b      = adc_b;
     s->adc_c      = adc_c;
     s->flags      = flags;
-    s->crc        = 0;
     s->pad        = test_id;
+    s->crc        = crc16_calc((const uint8_t *)s, SYSID_CRC_LEN);   /* last: covers pad */
 
+    spi_tx_publish(s);
+}
+
+
+/* =============================================================================
+ * spi2_rearm — set the link up for the next transaction
+ *
+ * Called at init and from the CS handler, with CS high. Resetting SPI2
+ * through RCC is the only way to drop the byte it already holds in its TX
+ * buffer; without it the next frame would go out shifted by that byte.
+ * Then the newest staged telemetry goes into the TX buffer and both DMAs
+ * restart at byte 0. SPE goes last, so DMA preloads byte 0 into DR before
+ * the Pi's first clock.
+ * =============================================================================*/
+
+static void spi2_rearm(void)
+{
+    DMA1_Stream3->CR &= ~DMA_SxCR_EN;   // stop RX DMA: SPI2->DR -> RX buffer (MoveCmd from the Pi)
+    DMA1_Stream4->CR &= ~DMA_SxCR_EN;   // stop TX DMA: TX buffer -> SPI2->DR (telemetry to the Pi)
+    // Wait till DMA disabled: the streams can't be reprogrammed while EN is 1.
+    // Timeout so the ISR can't hang (normally exits on the first pass).
+    for (uint32_t i = 0u;
+         ((DMA1_Stream3->CR | DMA1_Stream4->CR) & DMA_SxCR_EN) && i < 1000u;
+         i++) { }
+
+    // Pulse SPI2's reset: discards any partial byte in the shift register/FIFO,
+    // so the next frame starts at byte 0. Also wipes the config (rewritten below).
+    RCC->APB1RSTR |=  RCC_APB1RSTR_SPI2RST;
+    RCC->APB1RSTR &= ~RCC_APB1RSTR_SPI2RST;
+
+    spi2_dma_clear_flags();   // clear both streams' done/error flags before re-enabling
+
+    // Load the latest published telemetry frame into the TX buffer; the barrier
+    // makes sure the copy has landed before the DMA can read it.
+    memcpy(spi2_tx_buf, tx_stage[tx_stage_pub], SPI2_TRANSACTION_BYTES);
     __DMB();
-    spi_tx_write_idx = idx;
+
+    // Re-arm both streams for one 32-byte frame.
+    DMA1_Stream3->NDTR = SPI2_TRANSACTION_BYTES;
+    DMA1_Stream4->NDTR = SPI2_TRANSACTION_BYTES;
+    DMA1_Stream3->CR  |= DMA_SxCR_EN;
+    DMA1_Stream4->CR  |= DMA_SxCR_EN;
+
+    SPI2->CR1  = SPI_CR1_CPHA;                        // slave, mode 1 (CPOL 0, CPHA 1), 8-bit
+    SPI2->CR2  = SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN;   // SPI2 requests DMA for RX and TX
+    SPI2->CR1 |= SPI_CR1_SPE;                         // enable: ready for the Pi's next CS low
+
+    /* CS already low: the Pi started the next transaction before the link
+     * was ready, so that frame is lost. */
+    if (!(GPIOB->IDR & (1u << PIN_RPI_NSS)))
+        cnt_rearm_late++;
 }
 
 
@@ -145,19 +203,9 @@ void spi_sysid_update_latest(int16_t ia_mA,
 void spi_init(void)
 {
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN
-                  | RCC_AHB1ENR_GPIOBEN
-                  | RCC_AHB1ENR_GPIOCEN;
+                  | RCC_AHB1ENR_GPIOBEN;
 
     RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
-
-    /* PC13 READY output, idle high */
-    GPIOC->MODER   &= ~(3u << (READY_RING_REFILL * 2));
-    GPIOC->MODER   |=  (1u << (READY_RING_REFILL * 2));
-    GPIOC->OTYPER  &= ~(1u << READY_RING_REFILL);
-    GPIOC->OSPEEDR &= ~(3u << (READY_RING_REFILL * 2));
-    GPIOC->OSPEEDR |=  (1u << (READY_RING_REFILL * 2));
-    GPIOC->PUPDR   &= ~(3u << (READY_RING_REFILL * 2));
-    GPIOC->BSRR     =  (1u << READY_RING_REFILL);
 
     /* SPI2 pins: PB12=NSS, PB13=SCK, PB14=MISO, PB15=MOSI */
     GPIOB->MODER &= ~((3u << (PIN_RPI_NSS  * 2)) |
@@ -200,6 +248,7 @@ void spi_init(void)
 
     spi2_dma_clear_flags();
 
+#if RUN_MODE == RUN_MODE_SYSID
     /* Boot sample — flags=0x1234 marks pre-TIM1 data */
     spi_sysid_update_latest(100, 200, 300,
                             400, 500,
@@ -207,61 +256,34 @@ void spi_init(void)
                             800,
                             2048, 2050, 2046,
                             0x1234, 0);
+#else
+    /* Boot sample -- drive_state=DRIVE_IDLE (0), everything else zero, so
+     * the Pi sees a valid, CRC-correct frame from the very first read
+     * instead of uninitialized memory before the control loop writes
+     * anything real. */
+    {
+        TelemetryFrame boot_frame = {0};
+        spi_update_telem(&boot_frame);
+    }
+#endif
 
-    /*
-     * RX DMA: Pi MOSI -> SPI2->DR -> spi2_rx_buf
-     * CIRC — just counts transactions.
-     */
+    /* Fixed DMA addresses; spi2_rearm() loads the counts and starts both. */
     DMA1_Stream3->PAR  = (uint32_t)&SPI2->DR;
     DMA1_Stream3->M0AR = (uint32_t)spi2_rx_buf;
-    DMA1_Stream3->NDTR = SPI2_TRANSACTION_BYTES;
     DMA1_Stream3->CR   =
         (0u << DMA_SxCR_CHSEL_Pos) |
-        DMA_SxCR_MINC              |
-        DMA_SxCR_CIRC              |
-        DMA_SxCR_TCIE;
+        DMA_SxCR_MINC;
 
-    DMA1_Stream3->CR |= DMA_SxCR_EN;
-
-    NVIC_SetPriority(DMA1_Stream3_IRQn, 2);
-    NVIC_EnableIRQ(DMA1_Stream3_IRQn);
-
-    /*
-     * TX DMA: spi_tx_buf[spi_tx_write_idx] -> SPI2->DR -> Pi MISO
-     *
-     * CIRC over SPI2_TRANSACTION_BYTES (32 bytes).
-     * M0AR points at the active buffer; TIM1 ISR updates spi_tx_write_idx
-     * but CIRC loops regardless — Pi always reads the latest complete frame.
-     *
-     * Note: M0AR points at buf[0] at boot. The ISR will flip to buf[1]
-     * on the first write. CIRC does not update M0AR automatically —
-     * it loops over the same 32-byte region. This means both buffers
-     * share the CIRC window only if M0AR spans both. To keep it simple,
-     * point CIRC at the full 64-byte spi_tx_buf[] and let the ISR
-     * manage which half is current via spi_tx_write_idx.
-     *
-     * At 500kHz / 32 bytes = ~512µs per loop. TIM1 ISR at 20kHz updates
-     * every 50µs. Pi reads latest sample on each CS assertion.
-     */
     DMA1_Stream4->PAR  = (uint32_t)&SPI2->DR;
-    DMA1_Stream4->M0AR = (uint32_t)&spi_tx_buf[0];
-    DMA1_Stream4->NDTR = SPI2_TRANSACTION_BYTES;
-    DMA1_Stream4->CR =
+    DMA1_Stream4->M0AR = (uint32_t)spi2_tx_buf;
+    DMA1_Stream4->CR   =
         (0u << DMA_SxCR_CHSEL_Pos) |
         DMA_SxCR_DIR_0             |   /* memory -> peripheral */
-        DMA_SxCR_MINC;                 /* no CIRC — rearmed per transaction */
+        DMA_SxCR_MINC;
 
-    DMA1_Stream4->CR |= DMA_SxCR_EN;
+    spi2_rearm();
 
-    
-    SPI2->CR1 = SPI_CR1_CPHA;  
-    SPI2->CR2 = SPI_CR2_RXDMAEN | SPI_CR2_TXDMAEN;
-
-    __DMB();
-
-    SPI2->CR1 |= SPI_CR1_SPE;
-
-    /* CS edge IRQ on PB12 / EXTI12, falling edge — kept for cnt_cs counting */
+    /* CS rising edge IRQ on PB12 / EXTI12 -- end of transaction */
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
     SYSCFG->EXTICR[3] &= ~(0xFu << 0);
@@ -272,58 +294,100 @@ void spi_init(void)
     EXTI->IMR  |=  (1u << PIN_RPI_NSS);
     EXTI->PR    =  (1u << PIN_RPI_NSS);
 
-    NVIC_SetPriority(EXTI15_10_IRQn, 0);
+    NVIC_SetPriority(EXTI15_10_IRQn, 2);
     NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 
 /* =============================================================================
- * Legacy telemetry API — kept for link compatibility
+ * spi_update_telem — closed-loop telemetry, called from the position tick.
+ * Stamps the CRC and publishes the frame.
  * =============================================================================*/
 
+#if RUN_MODE != RUN_MODE_SYSID
 void spi_update_telem(const TelemetryFrame *frame)
 {
-    (void)frame;
+    TelemetryFrame f = *frame;
+
+    f.crc16 = crc16_calc((const uint8_t *)&f, TELEM_CRC_LEN);
+    spi_tx_publish(&f);
 }
+#endif
 
 
 /* =============================================================================
- * SPI RX complete IRQ (DMA1 Stream3)
+ * spi2_rx_parse — act on one complete 32-byte frame from the Pi
  * =============================================================================*/
 
-void DMA1_Stream3_IRQHandler(void)
+#if RUN_MODE != RUN_MODE_SYSID
+static volatile uint8_t move_seq_accepted = 0;
+
+uint8_t spi_move_seq(void)
 {
-    if (!(DMA1->LISR & DMA_LISR_TCIF3)) {
-        return;
-    }
-
-    DMA1->LIFCR = DMA_LIFCR_CTCIF3  |
-                  DMA_LIFCR_CHTIF3  |
-                  DMA_LIFCR_CTEIF3  |
-                  DMA_LIFCR_CDMEIF3 |
-                  DMA_LIFCR_CFEIF3;
-
-    cnt_telem++;
+    return move_seq_accepted;
 }
+
+static void spi2_rx_parse(const uint8_t *frame)
+{
+    if (frame[0] == SPI2_OP_MOVE_CMD)
+    {
+        MoveCmd cmd;
+        memcpy(&cmd, frame, sizeof(cmd));
+
+        uint16_t calc = crc16_calc((const uint8_t *)&cmd, MOVE_CMD_CRC_LEN);
+        if (calc == cmd.crc16)
+        {
+            // The Pi resends the MoveCmd until move_seq echoes its seq, so
+            // a repeat of the accepted seq is ignored. A new seq waits while
+            // a move is running; the Pi keeps sending it.
+            if (cmd.seq != move_seq_accepted &&
+                drive_is_idle() && !foc_trajectory_move_active())
+            {
+                foc_trajectory_start_move(cmd.target_pos, cmd.vel_max, cmd.accel_max);
+                drive_request_servo_on();
+                move_seq_accepted = cmd.seq;
+            }
+        }
+        else
+        {
+            cnt_error++;
+        }
+    }
+}
+#endif  /* MoveCmd only in trajectory mode: sysid never starts a move */
 
 
 /* =============================================================================
- * CS falling edge IRQ (EXTI12) — counting only, no rearm
+ * CS rising edge IRQ (EXTI12) — end of transaction
  * =============================================================================*/
+/*
+ * Fires when the Pi releases CS, once per transaction. The RX DMA stops
+ * after 32 bytes, so NDTR == 0 means a whole frame arrived; a shorter
+ * transaction (a glitch) is dropped. Then the link is re-armed for the next
+ * transaction, whatever this one was.
+ */
 void EXTI15_10_IRQHandler(void)
 {
-    if (!(EXTI->PR & (1u << PIN_RPI_NSS))) return;
-    EXTI->PR = (1u << PIN_RPI_NSS);
+    if (!(EXTI->PR & (1u << PIN_RPI_NSS))) return;   // shared EXTI15_10 vector: act only on the Pi's CS (PB12) rising edge
+
+    ISR_TIME_BEGIN(ISR_T_EXTI, ISR_PIN_EXTI);
+
+    EXTI->PR = (1u << PIN_RPI_NSS);   // clear the pending flag (write 1 to clear)
     cnt_cs++;
 
-    /* Rearm TX DMA on CS rising edge (end of transaction) */
-    while (DMA1_Stream4->CR & DMA_SxCR_EN) {}
+    if (DMA1_Stream3->NDTR == 0u)   // RX DMA got all 32 bytes; anything less is a torn frame
+    {
+        cnt_telem++;
+#if RUN_MODE != RUN_MODE_SYSID
+        spi2_rx_parse((const uint8_t *)spi2_rx_buf);   // parse the received frame (MoveCmd)
+#endif
+    }
+    else
+    {
+        cnt_rx_short++;
+    }
 
-    DMA1->HIFCR = DMA_HIFCR_CTCIF4 | DMA_HIFCR_CHTIF4 |
-                  DMA_HIFCR_CTEIF4  | DMA_HIFCR_CDMEIF4 | DMA_HIFCR_CFEIF4;
+    spi2_rearm();
 
-    uint8_t idx = spi_tx_write_idx;
-    DMA1_Stream4->M0AR = (uint32_t)&spi_tx_buf[idx];
-    DMA1_Stream4->NDTR = SPI2_TRANSACTION_BYTES;
-    DMA1_Stream4->CR  |= DMA_SxCR_EN;
+    ISR_TIME_END(ISR_T_EXTI, ISR_PIN_EXTI);
 }

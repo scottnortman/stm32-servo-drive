@@ -44,3 +44,9 @@ CONTEXT.md
 outputs/
 __pycache__/
 *.pyc
+
+# ===== IDE =====
+.settings/
+
+# ===== Claude Code =====
+.claude/

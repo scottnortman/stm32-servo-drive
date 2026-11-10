@@ -9,12 +9,13 @@ extern PIState velocity_loop;
 extern PState  position_loop;
 
 // ── Inter-loop setpoints ──────────────────────────────────────────────────────
-extern float          vel_cmd_rad_sec;
+// vel_cmd_rad_sec: written by the position loop, read by the velocity loop,
+// both in the TIM1 ISR.
+extern volatile float vel_cmd_rad_sec;
 extern float          iq_cmd;
-extern volatile float v_q_cmd;
 
 // ── Rate dividers ─────────────────────────────────────────────────────────────
-extern uint32_t vel_div;
+extern uint32_t loop_div;   // 0..19 tick counter for the outer loops (trajectory)
 
 // ── Sequencing ────────────────────────────────────────────────────────────────
 extern volatile uint8_t first_sample_ready;
@@ -25,5 +26,9 @@ extern volatile uint32_t samples_consumed;
 // ── API ───────────────────────────────────────────────────────────────────────
 void loops_reset(void);
 
-// Open-loop electrical drive — called from TIM1 ISR when STATE_OPEN_LOOP active
+// Velocity PI + friction feedforward (see loops.c).
+float velocity_loop_step(float vel_cmd_rad_sec, float vel_meas_rad, float dt);
+
+#ifdef REPO_MOTOR_BENCH
 void open_loop_step(float *theta, float v_mag, float d_theta);
+#endif

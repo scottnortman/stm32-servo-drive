@@ -1,3 +1,6 @@
 # Preserve imported vendor/reference files verbatim, including original whitespace.
 third_party/mcuviewer_recorder/* -whitespace
 tools/tuning/upstream/* -whitespace
+
+# Host/build scripts must run consistently on Linux/WSL and Windows checkouts.
+*.sh text eol=lf

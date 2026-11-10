@@ -1,0 +1,78 @@
+# Upstream integration, 2026-11-10
+
+## Branches and ownership
+
+- `origin`: https://github.com/scottnortman/stm32-servo-drive.git
+- `upstream`: https://github.com/jnzim/stm32-servo-drive.git
+- `scott/nucleo-current-tuning`: committed commissioning/tuning baseline, `836b762`.
+- `bench/current-pi-2026-11-10`: tag at that baseline.
+- `scott/upstream-integration`: merges upstream `eda7136` (179 newer commits).
+
+The baseline checkout is kept separately. Integration was performed in a Git
+worktree; no reset, rebase, force push or history rewrite was used. The local
+checkpoint archive also preserves the exact previously flashed HEX/ELF and V6
+motion image. The gains in `tools/tuning/current-loop-gains.json` and captures in
+`docs/bench/current-tuning` refer to that **pre-integration** image.
+
+## Conflict resolution and compatibility
+
+Three textual conflicts occurred: `.gitignore`, `Include/config.h`, and
+`src/drv8353.c`. Semantic review also found removed bench APIs and changed ADC
+and voltage defaults that Git merged without a conflict.
+
+| Area | Resolution |
+|---|---|
+| Application | Keep upstream trajectory, observer, protocol, tests and SVPWM helper changes. No SVPWM behavior is enabled beyond upstream's own use. |
+| Configuration | Keep upstream AKM/encoder defaults and gains. `REPO_MOTOR_BENCH` explicitly selects fixed 12 V; gain20 remains a target override. Default `fw.elf` stays 24 V, three pole pairs, gain40. |
+| PWM and ADC | Default application keeps upstream single falling-edge, raw ADC acquisition and centered sample offset. Bench builds retain original both-edge/IIR acquisition and offset; current/V6 board entry still selects ADC15cycles and CCR4=2489. |
+| Timing marker | Bench ADC keeps PC4 marker and its own DWT timing. It does not initialize upstream's PC9 ISR marker because PC9 is wired to INLC. |
+| DRV driver | Preserve the verified EVM pull-up/reset and SPI adaptations, plus public disable/fault/register and diagnostic APIs still used by commissioning targets. Upstream had removed these as unused by its application. |
+| Open-loop adapter | Restore the original small `open_loop_step` under `REPO_MOTOR_BENCH` only. Upstream velocity/trajectory behavior remains in the common module. |
+| Legacy delay | Retain `delay_ms` for the communication diagnostic that still calls it; unused sections are discarded from other images. |
+| Scripts | Use LF shell files and the correct `Include` directory case for Linux. |
+
+This is one shared source tree with explicit build profiles, not a second copy
+of the controller. The bench current PI still calls `src/control.c`.
+
+## Validation
+
+- All **29 firmware images** build with Arm GNU 13.2.1 on Windows.
+- Upstream host suite: **23 tests / 42 checks pass**.
+- Current tuning and actual vendor Recorder/mailbox suite: **ASan/UBSan pass**.
+- Both bench and upstream configuration contracts pass, including bus voltage,
+  gain/scaling, timing and trip thresholds.
+- Preprocessed ADC paths checked for both initialization and calibration edge
+  selection, preserved bench IIR, and isolation of ISR timing instrumentation.
+- Checked-in raw captures reproduce both PI comparison plots from a fresh worktree.
+- CI runs host suites and firmware builds on `jz-dev`, `scott/**`, and pull requests.
+
+Build/check commands (no hardware access):
+
+```sh
+cmake -S . -B build-bringup
+cmake --build build-bringup --parallel
+sh test/run_tests.sh
+bash tools/tuning/test-current-tuning.sh
+python tools/tuning/analyze_pi_tuning.py
+```
+
+Set `ARM_TOOLCHAIN_BIN_DIR` to the Arm GNU `bin` directory before configuring.
+Machine-readable validation/image hashes are in
+`docs/bench/2026-11-10-upstream-integration.json`.
+
+**The integrated firmware has NOT been flashed or bench-tested.** The actual MCU
+was left running the earlier, disarmed tuning image. Fresh EVM-power-OFF
+confirmation is required before programming. The default upstream `fw.elf` is
+an AKM/encoder application and is not the standalone GEMS commissioning image.
+Next bench verification should use `repo-current-tuning.elf`, beginning with its
+disabled-output boot checks and small signed-response/current steps. Re-import
+matching ELF addresses into MCUViewer only after selecting/flashing that image.
+The tuned gains remain RAM-only; reset defaults are still Kp0.2/Ki50.
+
+## Subsequent upstream updates
+
+Commit local work first. Fetch upstream, create a new integration branch from the
+current development branch, merge `upstream/jz-dev`, resolve with these profiles
+in mind, and run the checks above. Push the resulting branch to `origin`; keep a
+tag for each hardware-verified baseline. Do not merge upstream directly into a
+dirty bench checkout or force-push over the baseline tag.

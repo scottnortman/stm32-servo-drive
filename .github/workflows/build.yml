@@ -1,14 +1,23 @@
 name: Build Firmware
 
 # When this workflow runs:
-#  - every push to jz-dev (the default branch)
+#  - every push to jz-dev or a scott/* development branch
 #  - every pull request targeting any branch
 on:
   push:
-    branches: [jz-dev]
+    branches: [jz-dev, 'scott/**']
   pull_request:
 
 jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upstream control, trajectory, CRC and SVPWM tests
+        run: sh test/run_tests.sh
+      - name: Current tuning, Recorder and board profile tests
+        run: bash tools/tuning/test-current-tuning.sh
+
   build:
     runs-on: ubuntu-latest
     steps:

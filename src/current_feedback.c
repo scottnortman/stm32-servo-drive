@@ -1,6 +1,6 @@
 // current_feedback.c — 3-phase current sense via DRV8353RS onboard shunt amps
 //
-// STM32F411/F446 bare metal
+// STM32F411 bare metal
 //
 // Hardware:
 //   PC0 / ADC1_IN10 -> ISENA
@@ -32,6 +32,9 @@
 //   On STM32F4/F411, JEOC is bit 2 = 0x04.
 
 #include "current_feedback.h"
+#ifndef REPO_MOTOR_BENCH
+#include "isr_timing.h"
+#endif
 #include "board_f411.h"
 #include "clock.h"
 #include "stm32f4xx.h"
@@ -102,8 +105,9 @@ static volatile uint32_t current_missed_count  = 0u;
 
 void ADC_IRQHandler(void)
 {
-    if (ADC1->SR & ADC_SR_JEOC_BIT)
+    if (ADC1->SR & ADC_SR_JEOC_BIT)   // shared ADC vector: act only on ADC1 injected-conversion complete
     {
+#ifdef REPO_MOTOR_BENCH
         GPIOC->BSRR = (1u << 4);            /* PC4 high — sample point */
 
         /* Recursive IIR blend, not a fresh 2-sample average -- fires 2x/period
@@ -112,12 +116,25 @@ void ADC_IRQHandler(void)
         current_adc_raw[1] = (uint16_t)((current_adc_raw[1] + ADC1->JDR2) / 2u);
         current_adc_raw[2] = (uint16_t)((current_adc_raw[2] + ADC1->JDR3) / 2u);
 
+#else
+        ISR_TIME_BEGIN(ISR_T_ADC, ISR_PIN_ADC);   /* PC4 high — sample point */
+
+        current_adc_raw[0] = (uint16_t)ADC1->JDR1;
+        current_adc_raw[1] = (uint16_t)ADC1->JDR2;
+        current_adc_raw[2] = (uint16_t)ADC1->JDR3;
+
+#endif
+
         ADC1->SR &= ~ADC_SR_JEOC_BIT;
 
         current_sample_valid = true;
         current_sample_count++;
 
-        GPIOC->BSRR = (1u << (4 + 16));     /* PC4 low */
+#ifdef REPO_MOTOR_BENCH
+        GPIOC->BSRR = (1u << (4 + 16));
+#else
+        ISR_TIME_END(ISR_T_ADC, ISR_PIN_ADC);     /* PC4 low */
+#endif
     }
 }
 
@@ -183,11 +200,11 @@ void current_feedback_init(void)
     GPIOC->PUPDR &= ~(3u << (PIN_CUR_B * 2u));
     GPIOC->PUPDR &= ~(3u << (PIN_CUR_C * 2u));
 
-    /* PC4 debug pulse — shows ADC sample point on scope */
-    GPIOC->MODER &= ~(3u << (4 * 2));
-    GPIOC->MODER |=  (1u << (4 * 2));    /* output */
-    GPIOC->BSRR   =  (1u << (4 + 16));   /* idle low */
-
+#ifdef REPO_MOTOR_BENCH
+    // PC9 is INLC on this harness; do not initialize upstream's PC9 ISR marker.
+    GPIOC->MODER = (GPIOC->MODER & ~(3u << 8)) | (1u << 8);
+    GPIOC->BSRR = 1u << 20;
+#endif
     ADC->CCR  = ADC_CCR_ADCPRE_0;
 
     ADC1->CR1 = 0u;
@@ -197,9 +214,15 @@ void current_feedback_init(void)
     ADC1->CR1 |= ADC_CR1_SCAN;
 
     ADC1->SMPR1 &= ~((7u << 0) | (7u << 3) | (7u << 6));
+#ifdef REPO_MOTOR_BENCH
     ADC1->SMPR1 |=  ((ADC_SMP_84_CYCLES << 0) |
                      (ADC_SMP_84_CYCLES << 3) |
                      (ADC_SMP_84_CYCLES << 6));
+#else
+    ADC1->SMPR1 |=  ((ADC_SMP_15_CYCLES << 0) |
+                     (ADC_SMP_15_CYCLES << 3) |
+                     (ADC_SMP_15_CYCLES << 6));
+#endif
 
 
 
@@ -210,21 +233,26 @@ void current_feedback_init(void)
         (12u << ADC_JSQR_JSQ4_Pos);
 
     /*
-     * Hardware trigger: TIM1_TRGO, both edges.
+     * Start the three conversions from TIM1 once per PWM period, just
+     * before the counter peak (the middle of the low-side on time).
      *
-     * Per RM0383 Table 43:
-     *   JEXTSEL = 0001 (1) = TIM1_TRGO
-     *   JEXTEN  = 11   (3) = both edges
+     * pwm.c puts TIM1 channel 4 at CCR4 = 2499 - 168 and sends its output
+     * to the ADC. That output goes low when the counter passes CCR4 on the
+     * way up, 1.68us before the peak, and high again on the way down.
      *
-     * TIM1 CR2 MMS=111 routes OC4REF as TRGO. In center-aligned PWM, OC4REF
-     * has one rising edge (up-count past CCR4) and one falling edge
-     * (down-count past CCR4) per period, both close to the peak where CCR4
-     * sits — triggering on both gives 2 injected conversions per PWM cycle
-     * instead of 1, averaged together in ADC_IRQHandler for noise reduction.
+     *   JEXTSEL = 1 : trigger source is TIM1 (channel 4 output)
+     *   JEXTEN  = 2 : trigger on the falling edge only, once per period
+     *
+     * Each channel takes 1.08us, so A, B, C are sampled about 1.1us before,
+     * at, and 1.1us after the peak.
      */
     ADC1->CR2 &= ~(ADC_CR2_JEXTSEL | ADC_CR2_JEXTEN);
     ADC1->CR2 |=  ((1u << ADC_CR2_JEXTSEL_Pos) |
+#ifdef REPO_MOTOR_BENCH
                    (3u << ADC_CR2_JEXTEN_Pos));
+#else
+                   (2u << ADC_CR2_JEXTEN_Pos));
+#endif
 
     /* Enable JEOC interrupt — ADC_IRQHandler reads results */
     ADC1->CR1 |= ADC_CR1_JEOCIE;
@@ -232,7 +260,7 @@ void current_feedback_init(void)
     ADC1->CR2 |= ADC_CR2_ADON;
     ADC1->SR   = 0u;
 
-    NVIC_SetPriority(ADC_IRQn, 3);
+    NVIC_SetPriority(ADC_IRQn, 1);
     NVIC_EnableIRQ(ADC_IRQn);
 
     current_adc_raw[0] = 2048u;
@@ -251,6 +279,15 @@ void current_feedback_init(void)
 
 // =============================================================================
 // current_feedback_calibrate
+//
+// Measures each channel's zero-current ADC reading. Runs once at startup,
+// before pwm_enable(), so no current flows through the shunts.
+//   1. Busy-wait so the shunt amplifiers settle.
+//   2. Discard 32 software-started samples.
+//   3. Average 512 samples per channel into adc_offset[] (nominally 2048,
+//      falls back to ADC_ZERO if every sample timed out).
+//   4. Restore the TIM1_TRGO trigger and the JEOC interrupt.
+// Every current reading after this is (raw - adc_offset) * AMPS_PER_COUNT.
 // =============================================================================
 
 void current_feedback_calibrate(void)
@@ -295,11 +332,15 @@ void current_feedback_calibrate(void)
 
     /*
      * Re-enable hardware trigger and JEOC interrupt after calibration.
-     * Both edges — see current_feedback_init() for why.
+     * Falling edge only — see current_feedback_init() for why.
      */
     ADC1->CR2 &= ~(ADC_CR2_JEXTSEL | ADC_CR2_JEXTEN);
     ADC1->CR2 |=  ((1u << ADC_CR2_JEXTSEL_Pos) |
+#ifdef REPO_MOTOR_BENCH
                    (3u << ADC_CR2_JEXTEN_Pos));
+#else
+                   (2u << ADC_CR2_JEXTEN_Pos));
+#endif
 
     ADC1->SR = 0u;
 
@@ -314,19 +355,6 @@ void current_feedback_calibrate(void)
     current_sample_valid = false;
     current_sample_count = 0u;
     current_missed_count = 0u;
-}
-
-
-// =============================================================================
-// current_feedback_update
-//
-// No-op — ADC_IRQHandler owns data read.
-// Called from TIM1 ISR for compatibility; does nothing.
-// =============================================================================
-
-void current_feedback_update(void)
-{
-    /* ADC_IRQHandler owns this — no polling needed */
 }
 
 
@@ -351,16 +379,6 @@ uint32_t current_feedback_sample_count(void)
 
 
 // =============================================================================
-// current_feedback_missed_count
-// =============================================================================
-
-uint32_t current_feedback_missed_count(void)
-{
-    return current_missed_count;
-}
-
-
-// =============================================================================
 // current_feedback_get_phase_amps
 // =============================================================================
 
@@ -370,6 +388,7 @@ void current_feedback_get_phase_amps(float *ia, float *ib, float *ic)
     float b = ((float)current_adc_raw[1] - adc_offset[1]) * AMPS_PER_COUNT;
     float c = ((float)current_adc_raw[2] - adc_offset[2]) * AMPS_PER_COUNT;
 
+
     if (ia != 0) { *ia = a; }
     if (ib != 0) { *ib = b; }
     if (ic != 0) { *ic = c; }
@@ -378,6 +397,7 @@ void current_feedback_get_phase_amps(float *ia, float *ib, float *ic)
 
 // =============================================================================
 // current_feedback_get_dq
+// Clarke (amplitude-invariant, ic = -ia - ib) then Park by theta: phase currents -> i_d, i_q.
 // =============================================================================
 
 void current_feedback_get_dq(float theta, float *i_d, float *i_q)

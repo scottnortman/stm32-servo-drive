@@ -1,5 +1,7 @@
 #include "encoder.h"
+#include "config.h"
 #include "stm32f4xx.h"
+#include <math.h>
 
 // Hardware mapping
 #define ENC_TIM              TIM2
@@ -24,7 +26,11 @@ static int32_t last_position = 0;
 // ---------------------------------------------------------------------------
 // Velocity filter config
 // ---------------------------------------------------------------------------
-#define VEL_FILTER_N  80   // 20 ticks @ 20 kHz = 4 ms window
+// Boxcar velocity over the last VEL_FILTER_N count differences. Telemetry
+// and the friction sweep use it; the velocity loop runs on the observer
+// (VEL_LOOP_USES_OBSERVER), which has none of this filter's group delay
+// ((N-1)/2 samples, about 0.5 ms at N=20).
+#define VEL_FILTER_N  20   // 1 ms window
                            // resolution: 1 count/ms = 0.767 rad/s
                            // at 10 rad/s -> approximately 13 counts/ms
 
@@ -138,19 +144,6 @@ int32_t encoder_get_velocity(void)
 }
 
 
-// =============================================================================
-// encoder_zero
-// Reset encoder position and velocity state.
-// =============================================================================
-void encoder_zero(void)
-{
-    ENC_TIM->CNT = 0;
-    last_position = 0;
-
-    encoder.position = 0;
-    encoder.velocity = 0;
-}
-
 // ---------------------------------------------------------------------------
 // encoder_update — call from TIM1 ISR at 20 kHz
 // ---------------------------------------------------------------------------
@@ -174,3 +167,20 @@ void encoder_update(uint32_t timestamp_ms)
     last_position = current;
 }
 
+
+// =============================================================================
+// encoder_elec_angle — electrical angle relative to the alignment offset
+// =============================================================================
+float encoder_elec_angle(int32_t offset)
+{
+    int32_t raw = encoder_get_position() - offset;
+
+    float theta_mech = (float)raw * (FOC_TWO_PI / ENCODER_CPR);
+    float theta_elec = ENC_DIR * theta_mech * (float)MOTOR_POLE_PAIRS;   // 3 pole pairs: 360° electrical = 120° mechanical (~2731 counts)
+
+    theta_elec = fmodf(theta_elec, FOC_TWO_PI);
+    if (theta_elec < 0.0f)
+        theta_elec += FOC_TWO_PI;
+
+    return theta_elec;
+}

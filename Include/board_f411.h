@@ -28,17 +28,14 @@
 //     nFAULT high = no fault
 //     nFAULT low  = fault active
 //
-//   Future PWM TIM1:
+//   PWM TIM1:
 //     PA8  / TIM1_CH1 -> DRV PWM_A / INHA
 //     PA9  / TIM1_CH2 -> DRV PWM_B / INHB
 //     PA10 / TIM1_CH3 -> DRV PWM_C / INHC
 
 #pragma once
 
-// Profile refill request
- #define READY_RING_REFILL   13u 
-
-// Rpi SPR2 slave
+// RPi SPI2 slave
 #define PIN_RPI_NSS      12  // PB12
 #define PIN_RPI_SCK      13  // PB13
 #define PIN_RPI_MISO     14  // PB14
@@ -55,9 +52,9 @@
 #define PIN_DRV_CS       8   // PC8  
 
 // PWM TIM1, 3-PWM mode
-#define PIN_PWM_A        9   // PA8  / TIM1_CH1
-#define PIN_PWM_B        10   // PA9  / TIM1_CH2
-#define PIN_PWM_C        8  // PA10 / TIM1_CH3
+#define PIN_PWM_A        8   // PA8  / TIM1_CH1
+#define PIN_PWM_B        9   // PA9  / TIM1_CH2
+#define PIN_PWM_C        10  // PA10 / TIM1_CH3
 
 // Current feedback ADC
 #define PIN_CUR_A        0   // PC0 / ADC_IN10
@@ -68,5 +65,5 @@
 #define PIN_DRV_ENABLE   0   // PB0
 #define PIN_DRV_NFAULT   1   // PB1
 
-// RPi refill handshake
-#define PIN_STM_READY    3   // PC3
+// RPi start signal (input, pull-up; main.c waits for it at boot)
+#define PIN_PI_START     3   // PC3
