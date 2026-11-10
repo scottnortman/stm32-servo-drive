@@ -1,0 +1,31 @@
+{
+  "date_local": "2026-11-10",
+  "image_hex_sha256": "1f0672e7e413b748716b4efd75058e905de9786664f081afa2ec123f4165a647",
+  "image_elf_sha256": "0bc80b61747cd6ed2d868b717bd408eed3f267ffd362fcf9d75aaccc9b8e21c8",
+  "firmware": "repo-current-tuning, interface 0x00010003, NV Kp 0.8 / Ki 2000 loaded",
+  "flashing": "User confirmed EVM OFF; STM32CubeProgrammer verified the image, erased sectors 0 and 1 only, and reset. Sector 7 record persisted. Disabled-output boot and self-test passed.",
+  "prechecks": {
+    "supply": "User confirmed fixed 12 V, 0.25 A input limit, secured unloaded motor, Hall leads disconnected, and USER arming",
+    "positive_0p1V_selected_current_change_A": {"D": 0.13018, "Q": 0.13343},
+    "positive_0p1V_cross_current_change_A": {"D": 0.00151, "Q": 0.00529},
+    "current_step_0p5A": {
+      "conservative_kp_0p2_ki_50": {"D_rise_ms": 27.15, "Q_rise_ms": 29.75, "D_final_A": 0.49178, "Q_final_A": 0.49361},
+      "nv_kp_0p8_ki_2000": {"D_rise_ms": 0.45, "Q_rise_ms": 0.35, "D_final_A": 0.49998, "Q_final_A": 0.5},
+      "saturation_samples": 0,
+      "sampling": "20 kHz Recorder, three-sample crossing, 10-90% rise"
+    },
+    "raw_captures": "outputs/tuning/integrated-motion-precheck-*-20261110.json (ignored local files)"
+  },
+  "motion": {
+    "supply": "User confirmed fixed 12 V, 1 A input limit, secured unloaded motor, Hall leads disconnected, and USER arming",
+    "command": "Open-loop electrical field position commands one mechanical revolution out and back, cosine eased, 20 s per leg after 1 s alignment. Regulated D-axis phase-current reference 3 A; no rotor feedback.",
+    "limits": {"voltage_vector_V": 2.5, "filtered_phase_trip_A": 3.75, "raw_phase_trip_A": 4.0, "irq_timing_stop_us": 45.0, "deadline_s": 41.0},
+    "recovered_trace": {"selected_current_mean_A": 2.99956, "selected_current_sd_A": 0.02223, "mean_absolute_error_A": 0.01677, "max_abs_cross_current_A": 0.10929, "peak_abs_voltage_V": 1.8405, "saturation_samples": 0, "peak_commanded_revolutions": 1.0},
+    "user_observation": "slightly better but not perfect",
+    "actual_shaft_position_measured": false,
+    "host_capture_note": "MCUViewer MCP session returned HTTP 404 after 34.3 s; the host's stop command also failed. Reconnecting after the firmware deadline recovered state 0, reason 9, half_moves 2, command 0. The viewer's downsampled full-motion curve was saved locally.",
+    "final_hardware": {"state": 0, "reason": 9, "half_moves": 2, "commanded_revolutions": 0, "recorder_fault": 0, "recorder_max_cycles": 522, "irq_max_cycles": 3267, "cpu_cfsr": 0, "enable_inls_moe_low": true},
+    "local_capture": "outputs/tuning/d-axis-reciprocal-3a-20261110.json",
+    "local_image_archive": "outputs/checkpoints/d-axis-reciprocal-3a-2026-11-10"
+  }
+}

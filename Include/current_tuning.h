@@ -10,13 +10,16 @@ typedef struct {
 typedef struct {
     CurrentTuneConfig config;
     PIState d, q;
-    uint32_t sample, samples;
-    float phase, id_ref, iq_ref, vd, vq;
+    uint32_t sample, samples, prepared_sample, half_moves;
+    float phase, id_ref, iq_ref, vd, vq, field_theta, mechanical_position;
     bool active, saturated;
+    volatile bool completed;
 } CurrentTuning;
-enum { TUNE_VOLTAGE_STEP, TUNE_CURRENT_STEP, TUNE_CURRENT_CHIRP, TUNE_VOLTAGE_CHIRP };
+enum { TUNE_VOLTAGE_STEP, TUNE_CURRENT_STEP, TUNE_CURRENT_CHIRP,
+       TUNE_VOLTAGE_CHIRP, TUNE_D_RECIPROCAL };
 bool current_tuning_valid(const CurrentTuneConfig *p);
 void current_tuning_init(CurrentTuning *s, const CurrentTuneConfig *p);
 void current_tuning_start(CurrentTuning *s);
 void current_tuning_stop(CurrentTuning *s);
+float current_tuning_field_angle(CurrentTuning *s);
 void current_tuning_step(CurrentTuning *s, float id, float iq);

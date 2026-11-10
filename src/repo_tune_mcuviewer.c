@@ -2,6 +2,7 @@
 #include "repo_tune_link.h"
 #include "repo_tune_mcuviewer.h"
 #include "tune_gain_store.h"
+#include "config.h"
 #include "stm32f4xx.h"
 #include "recorder.h"
 
@@ -10,15 +11,19 @@ volatile float g_tune_kp=0.2f,g_tune_ki=50,g_tune_f_start=5,g_tune_f_end=200;
 volatile float g_tune_duration=1,g_tune_voltage_limit=0.75f;
 // RAM interface version also keeps editable scalars away from the SRAM boundary
 // that MCUViewer 1.4 currently excludes during automatic address resolution.
-volatile uint32_t g_tune_interface_version=0x00010002u;
+volatile uint32_t g_tune_interface_version=0x00010004u;
 volatile uint32_t g_tune_apply_seq,g_tune_start_seq,g_tune_stop_seq;
 volatile uint32_t g_tune_nv_save_seq,g_tune_nv_status;
+volatile float g_tune_command_mech_rev;
+volatile uint32_t g_tune_half_moves;
 volatile float g_tune_reference,g_tune_measured,g_tune_cross_current,g_tune_voltage;
 volatile uint32_t g_tune_saturated,g_tune_state,g_tune_reason,g_tune_result;
 volatile uint32_t g_tune_recorder_max_cycles,g_tune_recorder_fault;
 static CurrentTuning tune;
 static uint32_t applied,started,stopped,saved;
 static bool start_requested,stop_requested,config_ok;
+static bool loaded_nv;
+static float loaded_kp,loaded_ki;
 
 static CurrentTuneConfig requested(void)
 {
@@ -29,10 +34,11 @@ void repo_tune_init(void)
 {
     float kp,ki;
     g_tune_nv_status=tune_gain_load(tune_gain_stm32_flash(),&kp,&ki);
-    if(g_tune_nv_status==TUNE_GAIN_LOADED) { g_tune_kp=kp; g_tune_ki=ki; }
+    loaded_nv=g_tune_nv_status==TUNE_GAIN_LOADED;
+    if(loaded_nv) { g_tune_kp=loaded_kp=kp; g_tune_ki=loaded_ki=ki; }
     const CurrentTuneConfig p=requested();
     current_tuning_init(&tune,&p);
-    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010002u;
+    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010004u;
 }
 static bool same_experiment(const CurrentTuneConfig *a,const CurrentTuneConfig *b)
 {
@@ -57,7 +63,9 @@ void repo_tune_poll(uint32_t now,bool armed,uint32_t reason,uint32_t irq_cycles)
             config_ok=false;g_tune_result=1;
         } else {
             const uint32_t mask=__get_PRIMASK();__disable_irq();
-            if(tune.active && !same_experiment(&p,&tune.config)) g_tune_result=2;
+            if(armed && (p.mode==TUNE_D_RECIPROCAL || tune.config.mode==TUNE_D_RECIPROCAL)) {
+                config_ok=false;g_tune_result=2;
+            } else if(tune.active && !same_experiment(&p,&tune.config)) g_tune_result=2;
             else {
                 if(tune.active) {
                     tune.config=p;tune.d.kp=tune.q.kp=p.kp;tune.d.ki=tune.q.ki=p.ki;
@@ -80,10 +88,18 @@ void repo_tune_poll(uint32_t now,bool armed,uint32_t reason,uint32_t irq_cycles)
     }
     if(g_tune_start_seq!=started) {
         started=g_tune_start_seq;
-        if(!armed || reason || stop_requested || !config_ok || g_tune_recorder_fault) g_tune_result=3;
+        const CurrentTuneConfig r=requested();
+        const bool motion_ok=tune.config.mode!=TUNE_D_RECIPROCAL ||
+            (loaded_nv && loaded_kp==0.8f && loaded_ki==2000.0f &&
+             tune.config.kp==loaded_kp && tune.config.ki==loaded_ki &&
+             same_experiment(&r,&tune.config) &&
+             r.kp==tune.config.kp && r.ki==tune.config.ki);
+        if(!armed || reason || stop_requested || !config_ok ||
+           g_tune_recorder_fault || !motion_ok) g_tune_result=3;
         else if(tune.active) g_tune_result=2;
         else {start_requested=true;g_tune_result=0;}
     }
+    if(tune.completed) stop_requested=true;
     g_tune_reason=reason;
     g_tune_state=(armed?1u:0u)|(tune.active?2u:0u);
 }
@@ -100,15 +116,21 @@ bool repo_tune_take_stop(void)
 bool repo_tune_link_alive(uint32_t now)
 {
     (void)now;
-    // SWD has no application heartbeat. Each excitation has its own 0.1..10s
-    // deadline; disconnecting the viewer cannot leave an unbounded test running.
+    // SWD has no application heartbeat. The 6 A continuous motion profile relies
+    // on physical USER and fault/current/ADC/timing guards until stopped.
     return g_tune_recorder_fault==0;
 }
 void repo_tune_disarm(void)
 {
-    current_tuning_stop(&tune);start_requested=false;g_tune_state=0;
+    current_tuning_stop(&tune);tune.completed=false;start_requested=false;g_tune_state=0;
     g_tune_reference=g_tune_voltage=0;g_tune_saturated=0;
 }
+bool repo_tune_d_reciprocal_selected(void)
+{ return tune.config.mode==TUNE_D_RECIPROCAL; }
+float repo_tune_motion_amplitude(void)
+{ return tune.config.amplitude; }
+float repo_tune_field_angle(void)
+{ return current_tuning_field_angle(&tune); }
 bool repo_tune_control_tick(uint32_t tick,float id,float iq,const float logical[3],float *vd,float *vq)
 {
     (void)tick;(void)logical;
@@ -118,6 +140,8 @@ bool repo_tune_control_tick(uint32_t tick,float id,float iq,const float logical[
     g_tune_reference=voltage ? (d?*vd:*vq) : (d?tune.id_ref:tune.iq_ref);
     g_tune_measured=d?id:iq;g_tune_cross_current=d?iq:id;
     g_tune_voltage=d?*vd:*vq;g_tune_saturated=tune.saturated;
+    g_tune_command_mech_rev=tune.mechanical_position/FOC_TWO_PI;
+    g_tune_half_moves=tune.half_moves;
     return tune.active;
 }
 

@@ -93,28 +93,77 @@ image hashes are in `docs/bench/2026-11-10-nv-current-gains.json`. The exact
 flashed ELF/HEX are copied to the ignored local archive
 `outputs/checkpoints/nv-current-gains-2026-11-10`.
 This validates **flash persistence and disabled-output boot only**. No powered
-voltage/current experiment has run on the integrated image.
+voltage/current experiment had run on the integrated image at that point.
+
+Powered revalidation subsequently passed on the integrated image: +0.1 V
+stationary D/Q steps produced +0.130/+0.133 A selected-current changes. At
+0.5 A, conservative Kp0.2/Ki50 rise was D27.15/Q29.75 ms; NV Kp0.8/Ki2000
+gave D0.45/Q0.35 ms with no saturation. A bounded rotating D-axis current run
+at 3 A, 2.5 V ceiling, 20 s per leg commanded one mechanical revolution out
+and back. It tracked 3.000 A mean with 0.017 A mean absolute error, 1.84 V peak
+command and no saturation. The MCU finished both half moves, disarmed at the
+41 s deadline (reason9), with Recorder fault0, IRQ max3267cycles, CPU fault0,
+and ENABLE/INLs/MOE LOW. Scott observed “slightly better but not perfect”
+shaft motion. Actual shaft position remains unmeasured; see
+`docs/bench/2026-11-10-d-axis-reciprocal-3a.json`.
+
+A subsequent 5 A D-axis run used a 3.2 V vector ceiling, 10 s per leg and a
+21 s deadline. The selected current averaged 5.0007 A with 0.0179 A mean
+absolute error, 3.068 V peak command and zero saturation samples. The MCU
+completed two half moves and auto-disarmed with reason9; Recorder/CPU faults0,
+IRQ max3283cycles, ENABLE/INLs/MOE LOW. Scott reported it was better and
+smoother than the 3 A run. Shaft travel was not quantified or encoder measured.
+See `docs/bench/2026-11-10-d-axis-reciprocal-5a.json`.
+
+The first 6 A continuous run used 5 s per leg. Scott held USER after about
+52 s and ten completed half moves; he reported that it worked well. Filtered
+MCUViewer points gave 6.000 A mean, 0.0168 A mean absolute error, and zero
+sampled saturation. Peak commanded voltage approached the 4 V ceiling.
+Post-run: state0/reason1, Recorder fault0, IRQ max3298cycles, CPU fault0,
+ENABLE/INLs/MOE LOW. See `docs/bench/2026-11-10-d-axis-reciprocal-6a.json`.
+Actual shaft travel remains unmeasured.
+
+Scott then requested twice the speed again, retaining 6 A and continuous USER
+stop. The new image used 2.5 s per leg and ran about 46 s, completing 18
+commanded half moves before USER stop. Scott said it was working. Selected
+current averaged 6.0002 A with 0.0176 A mean absolute error. Eleven of 3781
+downsampled selected points flagged vector saturation near the end; peak D
+command reached 4.000 V. HOTPLUG post-stop: state0/reason1, Recorder fault0,
+IRQ max3326cycles, CPU fault0, ENABLE/INLs/MOE LOW. Actual shaft travel and
+speed were not measured by feedback. See
+`docs/bench/2026-11-10-d-axis-reciprocal-6a-2x.json`.
 
 ## Hardware and safety state at handoff
 
-The integrated tuning image is now on the MCU. Last observed after the NV-save
-reset: fully disarmed, ENABLE/INLs/MOE LOW, self-test1, Recorder/CPU faults0,
-Kp0.8/Ki2000 loaded from flash, `nv_status=1`, apply/start/stop/save sequences0.
-MCUViewer is stopped on the matching integrated project. The EVM was user-confirmed
-OFF before programming and remained OFF through this verification. These describe
-the last observation, not a guarantee of the current hardware state.
+The **6 A / 2.5 s-per-leg image** was flashed and verified. After fresh user
+EVM-OFF confirmation, CubeProgrammer erased sectors0/1 only and reset; sector7
+persisted. Last HOTPLUG boot check: fully disarmed state0/reason0, self-test1,
+Recorder fault0/max522cycles, CPU fault0, Kp0.8/Ki2000 loaded from flash,
+ENABLE/INLs/MOE LOW. Matching MCUViewer project was regenerated. Powering the
+EVM apparently reset the MCU between the first disarmed config apply and USER
+arm: the preflight found default step settings while armed at zero drive. A GUI
+stop disarmed it, mode4/6 A/duration0/4 V was reapplied with EVM powered,
+then Scott rearmed and the fast trial ran. The latest observed post-run state
+is disarmed state0/reason1 with outputs LOW and no fault; MCUViewer acquisition
+is STOP. EVM power was last used at 12 V/3.5 A input limit; its present power
+state is not yet confirmed.
 
 Get fresh EVM-power-OFF confirmation before any later programming or reset. USER
-physically arms at zero drive; a GUI command starts each bounded
+physically arms at zero drive; a GUI command starts each
 experiment. Stop/fault requires USER rearming. Motor remains secured/unloaded,
 Hall leads disconnected. No encoder is currently available. COM3 is the user's
 console; do not seize it. Wiring details are in
 `docs/STM32F411_DRV8353RS_INTEGRATION.md` and the bench guide.
 
-ST-LINK SN: 066DFF514988525067173049. MCUViewer now uses the matching ELF at
-`build-bringup-arm/repo-current-tuning.elf`. Both the standard 20-variable project
-and the 20-variable NV-save view were regenerated with its addresses. Preserve
-the exact rollback baseline ELF/HEX in the original worktree archive.
+ST-LINK SN: 066DFF514988525067173049. The build path
+The exact powered 2.5 s image is archived in
+`outputs/checkpoints/d-axis-reciprocal-6a-2x-continuous-2026-11-10`.
+The current build also corrects a UART boot message that otherwise implied
+all tests have a deadline; this text-only update has not been flashed yet.
+The 5 s/leg image and its capture are separately archived under
+`outputs/checkpoints/d-axis-reciprocal-6a-continuous-2026-11-10` and
+`outputs/tuning/d-axis-reciprocal-6a-20261110.json`. Preserve the V6 rollback
+ELF/HEX in the original worktree archive.
 
 ## What the upstream merge preserved
 
@@ -139,8 +188,21 @@ For the NV change, upstream 23 tests/42 checks and current-tuning/Recorder/profi
 tests passed under ASan/UBSan; new flash-journal tests covered interrupted writes,
 corruption fallback and full storage. `repo-current-tuning.elf` and the separate
 default `fw.elf` built with Arm GNU13.2. Firmware HEX ends at `0x08004fbb`, below
-the reserved `0x08060000` sector. These software checks are separate from the
-powered bench work still pending.
+the reserved `0x08060000` sector. These software checks preceded and are
+separate from the powered bench results above.
+
+The rotating D-axis mode uses the saved 0.8/2000 gains and the one-turn cosine
+trajectory. The 3 A/5 A profiles have 41 s/21 s deadlines. The prior 6 A
+image used 5 s legs until USER. The newly flashed 6 A image uses 2.5 s legs
+until physical USER, frontend stop or a protection trip. It uses a 4 V ceiling, 7.5 A
+filtered/8 A raw per-phase trips and a 45 us IRQ timing stop. Mode 4 is applied
+only while disarmed and requires a physical USER arm plus fresh GUI start.
+SWD has no application heartbeat, so viewer disconnection does not stop the
+continuous run. Upstream 23/42 and current-tuning/Recorder/profile host checks
+pass under ASan/UBSan, including two simulated fast cycles; affected Arm GNU13.2
+targets build. The faster image's disabled boot and powered trial passed within
+the limits above. Image hashes and results are in
+`docs/bench/2026-11-10-d-axis-reciprocal-6a-2x.json`.
 
 Set `ARM_TOOLCHAIN_BIN_DIR` to the installed Arm GNU `bin` directory, then:
 
@@ -158,16 +220,15 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. With EVM 12 V back under the user's control and the motor secured, verify
-   small signed voltage steps on both axes, then bounded 0.5 A current steps
-   on the integrated image. Before the first powered check, explicitly apply
-   conservative Kp0.2/Ki50 in RAM; flash will otherwise load Kp0.8/Ki2000.
-2. Recheck Kp0.8/Ki2000 on the integrated image after polarity/current guards
-   pass. The flash journal's empty, save and reload paths are verified; corruption
-   fallback is host-tested only. Preserve rollback baseline and exact new image.
-3. Extend/verify excitation beyond800Hz for full bandwidth measurements using
+1. Record the user's final qualitative smoothness/travel observation if
+   available; the 6 A/2.5 s trial electrically tracked but reached the 4 V
+   ceiling on some late samples. Do not infer actual rotor trajectory from
+   the commanded angle. Obtain fresh EVM-OFF confirmation before any later
+   flash or reset. If the UART text-only image is flashed, verify disabled
+   output/NV load; the powered results above belong to the archived image.
+2. Extend/verify excitation beyond800Hz for full bandwidth measurements using
    raw20kHz data. Avoid the earlier1ms plotting average for1kHz phase analysis.
-4. Validate higher currents and cross coupling/angle dependence. Actual rotor
+3. Validate higher currents and cross coupling/angle dependence. Actual rotor
    feedback is needed before developing and tuning velocity/position loops.
 
 ## Local recovery notes

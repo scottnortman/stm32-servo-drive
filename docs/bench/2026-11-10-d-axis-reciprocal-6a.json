@@ -1,0 +1,19 @@
+{
+  "date_local": "2026-11-10",
+  "status": "flashed and powered bench run stopped by USER",
+  "target": "repo-current-tuning.elf, interface 0x00010004, mode 4 rotating D-axis current",
+  "elf_sha256": "0ea9f6874230515c2de2d2834beb6f8c06f61d38623cc7f14985fcc2dabf18c4",
+  "hex_sha256": "ae797738576cac4e188868f91114cc1bb4e24b37b46307273c15d4bc10e2e06e",
+  "hex_address_range": ["0x08000000", "0x080055fb"],
+  "flashing": "After fresh user confirmation EVM OFF, CubeProgrammer erased sectors 0/1 only, flashed and verified the image, and reset. Sector 7 persisted. HOTPLUG disabled-output boot: self-test 1, NV 0.8/2000 loaded, Recorder fault 0/max 520 cycles, CPU CFSR 0, ENABLE/INLs/MOE low.",
+  "request": {"mode": 4, "axis": 0, "phase_current_A": 6.0, "kp_V_per_A": 0.8, "ki_V_per_A_s": 2000.0, "duration_s": 0.0, "voltage_vector_limit_V": 4.0},
+  "trajectory": "1 s alignment then one commanded mechanical revolution out in 5 s and back in 5 s, cosine eased, repeating until USER; four assumed pole pairs, no rotor feedback",
+  "guards": {"filtered_phase_A": 7.5, "raw_phase_A": 8.0, "irq_stop_us": 45.0, "physical_user_arm": true, "fresh_gui_start": true, "user_hold_to_stop_ms": 20, "nFAULT_adc_recorder_guards": true},
+  "supply_and_setup": "User confirmed fixed 12 V, 3.5 A supply input limit, secured unloaded motor, Hall leads disconnected and USER arming at zero drive.",
+  "motion": {"elapsed_to_user_stop_s": 51.813, "completed_half_moves": 10, "selected_current_mean_A": 6.000019, "mean_absolute_error_A": 0.016764, "max_abs_cross_current_A": 0.105107, "peak_abs_commanded_voltage_V": 3.999948, "sampled_saturation_points": 0, "peak_commanded_revolutions": 0.999997, "user_observation": "worked well; shaft travel not quantified", "actual_shaft_position_measured": false},
+  "capture_note": "MCUViewer returned 5000 downsampled points per signal from an acquisition that also included idle time. Metrics select points with reference at least 5.9 A and nonzero voltage; the live host log showed approximately 52 s of running. The first capture script failed while parsing the stop-acquisition text response after USER stopped; curves were then recovered from the GUI. A sampled saturation value of zero does not rule out saturation between samples. Peak voltage was near the 4 V ceiling.",
+  "final_hardware": {"state": 0, "reason": 1, "half_moves": 10, "recorder_fault": 0, "recorder_max_cycles": 520, "irq_max_cycles": 3298, "cpu_cfsr": 0, "enable_inls_moe_low": true},
+  "software_validation": {"upstream_host_tests": "23 tests, 42 checks pass", "current_tuning_recorder_nv_profile_tests": "ASan/UBSan pass including two complete continuous cycles", "firmware_targets": "all affected targets build with Arm GNU 13.2"},
+  "local_capture": "outputs/tuning/d-axis-reciprocal-6a-20261110.json",
+  "local_archive": "outputs/checkpoints/d-axis-reciprocal-6a-continuous-2026-11-10"
+}

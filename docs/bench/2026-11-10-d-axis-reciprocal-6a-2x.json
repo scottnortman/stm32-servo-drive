@@ -1,0 +1,19 @@
+{
+  "date_local": "2026-11-10",
+  "status": "flashed, powered and stopped by USER",
+  "target": "repo-current-tuning.elf, interface 0x00010004, mode 4 rotating D-axis current",
+  "elf_sha256": "1d1ce195a263ca7911165b276e2005ff7d4378534d42cf55e7d14e6aab880883",
+  "hex_sha256": "b5b8a20624743d3eda93be4116d03286c2b5b75c0be4322067c0c69cf22e66e0",
+  "hex_address_range": ["0x08000000", "0x08005603"],
+  "flashing": "After user confirmed EVM OFF following the first 6 A run, CubeProgrammer erased sectors 0/1 only, flashed and verified the image, and reset. Sector 7 record persisted. HOTPLUG disabled-output boot: self-test 1, NV Kp 0.8/Ki 2000 loaded, Recorder fault 0/max 522 cycles, CPU CFSR 0, ENABLE/INLs/MOE low.",
+  "request": {"mode": 4, "axis": 0, "phase_current_A": 6.0, "kp_V_per_A": 0.8, "ki_V_per_A_s": 2000.0, "duration_s": 0.0, "voltage_vector_limit_V": 4.0},
+  "trajectory": "1 s alignment then one commanded mechanical revolution out in 2.5 s and back in 2.5 s, cosine eased, repeating until USER; four assumed pole pairs, no rotor feedback",
+  "guards": {"filtered_phase_A": 7.5, "raw_phase_A": 8.0, "irq_stop_us": 45.0, "physical_user_arm": true, "fresh_gui_start": true, "user_hold_to_stop_ms": 20, "nFAULT_adc_recorder_guards": true},
+  "supply_and_setup": "User confirmed fixed 12 V, 3.5 A supply input limit, secured unloaded motor, Hall leads disconnected and USER arming. The first post-power arm exposed default settings, with zero drive; the MCU had apparently restarted between disarmed configuration and arm. The GUI disarmed using stop_seq, settings were reapplied while EVM was powered and drive disarmed, then the user physically re-armed. No fast motion was started under default settings.",
+  "motion": {"elapsed_to_user_stop_s": 45.922, "completed_half_moves": 18, "selected_current_mean_A": 6.000192, "selected_current_sd_A": 0.023117, "mean_absolute_error_A": 0.017600, "max_abs_cross_current_A": 0.119802, "peak_abs_commanded_d_voltage_V": 3.999956, "sampled_saturation_points": 11, "selected_curve_points": 3781, "peak_commanded_revolutions": 1.0, "user_observation": "working; smoothness and shaft travel not yet quantified", "actual_shaft_position_measured": false},
+  "capture_note": "MCUViewer curve metrics use points with reference at least 5.9 A and nonzero commanded voltage. Eleven 100 Hz/downsampled points flagged vector saturation, all in roughly the last 7 seconds. The D-voltage scalar excludes Q voltage, so saturation may flag when D voltage is below 4 V. Host polling ended immediately after USER stop and briefly showed stale reason0; subsequent HOTPLUG read confirmed reason1.",
+  "final_hardware": {"state": 0, "reason": 1, "half_moves": 18, "recorder_fault": 0, "recorder_max_cycles": 522, "irq_max_cycles": 3326, "cpu_cfsr": 0, "enable_inls_moe_low": true, "mcuviewer_acquisition": "STOP"},
+  "software_validation": {"upstream_host_tests": "23 tests, 42 checks pass", "current_tuning_recorder_nv_profile_tests": "ASan/UBSan pass including two complete fast cycles", "firmware_targets": "repo-current-tuning.elf rebuilt with Arm GNU 13.2; all other affected targets built in the prior 6 A change"},
+  "local_capture": "outputs/tuning/d-axis-reciprocal-6a-2x-20261110.json",
+  "local_archive": "outputs/checkpoints/d-axis-reciprocal-6a-2x-continuous-2026-11-10"
+}

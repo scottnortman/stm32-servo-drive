@@ -1,8 +1,8 @@
 # MCUViewer FREE current-loop tuning
 
-Integration note: the powered captures and tuned gains below were measured
-before the latest upstream merge. The integrated tuning image is now flashed,
-but its powered loop response has not been remeasured. See
+Integration note: the first tuning captures below preceded the upstream merge.
+The integrated image has since passed powered steps and 3 A/5 A rotating-current
+trials. See
 [integration notes](UPSTREAM_INTEGRATION.md) for the build-profile checks.
 
 Scott selected MCUViewer with ST-LINK and Recorder, free edition: **20 live
@@ -93,8 +93,10 @@ reset.
 ## Open, build and capture
 
 - Project: `tools/tuning/current-loop-free.mcuv`.
-- Matching flashed firmware on this PC: `build-bringup-arm/repo-current-tuning.elf`
-  and `.hex` (HEX SHA256 `f00cd902bc01702359b97b69529b6cc0d82cac9af83cbcffea0960f47ee69823`).
+- The flashed 6 A/2.5 s-per-leg image is archived at
+  `outputs/checkpoints/d-axis-reciprocal-6a-2x-continuous-2026-11-10` (HEX
+  SHA256 `b5b8a20624743d3eda93be4116d03286c2b5b75c0be4322067c0c69cf22e66e0`).
+  The `build-bringup-arm` ELF/HEX match this image.
 - Build: `cmake --build build-bringup-arm --target repo-current-tuning.elf`.
 - Software tests (WSL): `bash tools/tuning/test-current-tuning.sh`.
 - Optional project regeneration: `python tools/tuning/mcuviewer_project.py` with
@@ -164,9 +166,76 @@ needs fresh EVM-power-OFF confirmation. The sector layout
 and 32-bit programming mode follow the
 [STM32F411 reference manual](https://www.st.com/resource/en/reference_manual/dm00119316.pdf).
 
+## D-axis reciprocal trials
+
+`repo-current-tuning` mode 4 commands a rotating **D-axis current** vector
+using the saved Kp0.8/Ki2000 PI gains. The electrical field angle follows the
+earlier cosine trajectory: 1 s at the initial angle for alignment, then one
+commanded mechanical revolution out and back. Sine PWM comes from the existing
+`pwm_apply_dq` path. The current image accepts the 3 A, 5 A and fast 6 A
+profiles; the slower 6 A profile belongs to the archived prior image:
+
+| Profile | Current | Vector ceiling | Time per leg | Stop | Filter/raw phase trips |
+|---|---:|---:|---:|---:|---:|
+| Verified 3 A | 3 A | 2.5 V | 20 s | 41 s | 3.75 / 4 A |
+| Verified 5 A | 5 A | 3.2 V | 10 s | 21 s deadline | 6.5 / 7 A |
+| Archived 6 A image, verified | 6 A | 4 V | 5 s | USER, stop command or fault | 7.5 / 8 A |
+| Flashed 6 A image | 6 A | 4 V | 2.5 s | USER, stop command or fault | 7.5 / 8 A |
+
+The 3 A and 5 A profiles coast and disarm at their deadlines. The 6 A profiles
+repeats until stopped; SWD has no application heartbeat, so a disconnected
+viewer does not stop it. USER, nFAULT, ADC freshness, bus
+preflight and 45 us control-IRQ timing stop remain. Mode 4 requires the exact
+0.8/2000 pair loaded from NV flash at boot, a config apply while disarmed,
+physical USER arming and a fresh GUI start sequence.
+
+The prior 2 A voltage-driven image commanded a full revolution per leg; Scott
+observed roughly ±0.5 shaft revolution with uneven motion. This new test keeps
+the same commanded trajectory but regulates D current. On the 3 A run, the
+selected-current mean during motion was 3.000 A, mean absolute error 0.017 A,
+peak commanded voltage 1.84 V and no saturation. Firmware completed two half
+moves, disarmed without fault, and measured 3267 maximum IRQ cycles. Scott
+reported motion was “slightly better but not perfect.” Evidence is in
+`bench/2026-11-10-d-axis-reciprocal-3a.json`; full curves and the exact image
+are archived locally under `outputs/checkpoints/d-axis-reciprocal-3a-2026-11-10`.
+The 5 A run completed both legs and auto-disarmed at 21 s. During motion its
+selected current averaged 5.001 A with 0.018 A mean absolute error, 3.068 V peak
+command and no saturation; maximum IRQ time was 3283 cycles and all outputs
+were LOW afterward. Scott observed better, smoother shaft motion than at 3 A;
+travel was not quantified. See `bench/2026-11-10-d-axis-reciprocal-5a.json`.
+The first 6 A run completed ten half moves over about 52 s before Scott held
+USER; he reported that motion worked well. On 5000 downsampled curve points,
+current averaged 6.000 A with 0.017 A mean absolute error, sampled saturation
+was zero and peak commanded voltage approached 4 V. See
+`bench/2026-11-10-d-axis-reciprocal-6a.json`.
+The 2.5 s-per-leg run completed 18 commanded half moves in about 46 s before
+USER stopped it; Scott said it was working. Current averaged 6.000 A with
+0.018 A mean absolute error. Eleven of 3781 selected downsampled curve points
+flagged vector saturation near the end, and peak commanded D voltage reached
+4.000 V. The post-stop fault and output checks passed; see
+`bench/2026-11-10-d-axis-reciprocal-6a-2x.json`.
+With no rotor sensor, its
+`g_tune_command_mech_rev` is a **command**, not measured shaft position. Smoothness
+and shaft travel require direct observation; current tracking and saturation can
+be captured electronically. These are distinct measures of performance.
+
+After flashing the matching 6 A-capable image, create the 20-slot GUI view with
+`python tools/tuning/mcuviewer_project.py --motion --elf build-bringup-arm/repo-current-tuning.elf`.
+It swaps the two chirp frequency requests for commanded mechanical revolutions
+and completed half moves. For the continuous trial, apply mode4, axis0,
+amplitude6 A, duration0 s, voltage limit4 V and the boot-loaded gains
+**while disarmed**. Secure the unloaded motor with Halls disconnected; use fixed
+12 V and the 3.5 A supply input limit used for the prior 6.25 A V6 trial.
+Press/release USER to arm at zero drive, start a live capture, then increment
+`g_tune_start_seq`. The current image uses 2.5 s per leg; the archived previous
+6 A image used 5 s per leg with the same runtime settings. USER held for 20 ms
+stops and disarms the drive. The GUI
+stop sequence also disarms. Confirm state0 and LOW outputs after USER stops it,
+save the trace, and record observed shaft travel/smoothness separately.
+
 ## First powered run on the integrated image
 
-1. The matching integrated image is already flashed. Check self-test=1 and
+1. With a matching integrated image flashed, check self-test=1 and
    ENABLE, INLs and MOE LOW; inspect `g_tune_recorder_max_cycles` and
    `g_tune_recorder_fault` read-only before energizing. If replacing the image,
    stop motion with USER and get fresh EVM-power-OFF confirmation before flashing
@@ -202,15 +271,17 @@ gain between captures for comparable results.
 Modes: 0 voltage step, 1 current step, 2 current chirp, 3 voltage chirp. Axis:
 0 stationary-frame D, 1 stationary-frame Q. Reference is A in current modes, V
 in voltage modes; measured/cross current are A, voltage is V, saturation is 0/1.
-These are fixed electrical coordinates, not measured rotor-aligned torque axes.
-Each test lasts 0.1..10 seconds and removes drive at its deadline, including if
-the viewer disconnects.
+Modes 0..3 use fixed electrical coordinates. Mode 4 uses a commanded rotating
+electrical frame; none is a measured rotor-aligned torque axis.
+Standard step/tone tests last 0.1..10 seconds; mode 4 lasts 41 or 21 seconds
+for the bounded profiles. The 6 A profile uses duration0 to repeat continuously
+until USER, stop command or a fault. A viewer disconnect alone cannot stop it.
 
 State bits: 0=armed, 1=active. Result: 0 accepted, 1 invalid settings,
 2 busy/incompatible active edit, 3 start rejected/unarmed. Rejected starts are
 consumed and cannot replay after arming. Reasons: 1 USER, 2 nFAULT, 3 raw current,
 4 filtered current, 5 ADC, 6 bus preflight, 7 config, 8 self-test,
-9 frontend stop/Recorder guard.
+9 frontend stop/Recorder guard, 10 motion IRQ timing stop.
 
 ## Reuse and verification limits
 

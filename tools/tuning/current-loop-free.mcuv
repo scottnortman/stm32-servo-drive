@@ -2,7 +2,7 @@
   "format": "mcuviewer-project",
   "schema_version": 3,
   "app_version": "1.4.0",
-  "id": "bfe1cf6c-9162-4936-ba26-34744db0b266",
+  "id": "00bc576b-355d-4449-b0bc-50d5f543d248",
   "elf": {
     "path": "../../build-bringup-arm/repo-current-tuning.elf"
   },
@@ -56,7 +56,7 @@
       "name": "g_tune_amplitude",
       "address": "0x2000001C",
       "type": "f32",
-      "color": "#C2095F71",
+      "color": "#FC3CB134",
       "write_limits": {
         "enabled": true,
         "min": 0.0,
@@ -65,15 +65,15 @@
     },
     {
       "name": "g_tune_apply_seq",
-      "address": "0x200001C4",
+      "address": "0x200001E4",
       "type": "u32",
-      "color": "#5D283C5F"
+      "color": "#30E56B4B"
     },
     {
       "name": "g_tune_axis",
-      "address": "0x200001C8",
+      "address": "0x200001E8",
       "type": "f32",
-      "color": "#26367F97",
+      "color": "#C78FC4FB",
       "write_limits": {
         "enabled": true,
         "min": 0.0
@@ -81,15 +81,15 @@
     },
     {
       "name": "g_tune_cross_current",
-      "address": "0x200001A8",
+      "address": "0x200001C0",
       "type": "f32",
-      "color": "#6059109A"
+      "color": "#A96FAA56"
     },
     {
       "name": "g_tune_duration",
       "address": "0x20000008",
       "type": "f32",
-      "color": "#12BE8372",
+      "color": "#9FAE0D62",
       "write_limits": {
         "enabled": true,
         "min": 0.1,
@@ -100,7 +100,7 @@
       "name": "g_tune_f_end",
       "address": "0x2000000C",
       "type": "f32",
-      "color": "#22547A90",
+      "color": "#8CBCCEA1",
       "write_limits": {
         "enabled": true,
         "min": 1.0,
@@ -111,7 +111,7 @@
       "name": "g_tune_f_start",
       "address": "0x20000010",
       "type": "f32",
-      "color": "#3BCBBC76",
+      "color": "#6B0AFC74",
       "write_limits": {
         "enabled": true,
         "min": 1.0,
@@ -122,7 +122,7 @@
       "name": "g_tune_ki",
       "address": "0x20000014",
       "type": "f32",
-      "color": "#D407805C",
+      "color": "#8904C1D0",
       "write_limits": {
         "enabled": true,
         "min": 0.0,
@@ -133,7 +133,7 @@
       "name": "g_tune_kp",
       "address": "0x20000018",
       "type": "f32",
-      "color": "#38C66DD2",
+      "color": "#C1A1FEFE",
       "write_limits": {
         "enabled": true,
         "min": 0.0,
@@ -142,15 +142,15 @@
     },
     {
       "name": "g_tune_measured",
-      "address": "0x200001AC",
+      "address": "0x200001C4",
       "type": "f32",
-      "color": "#CC8D2636"
+      "color": "#DB5859BC"
     },
     {
       "name": "g_tune_mode",
       "address": "0x20000020",
       "type": "f32",
-      "color": "#78F8E370",
+      "color": "#718D06DF",
       "write_limits": {
         "enabled": true,
         "min": 0.0,
@@ -159,57 +159,57 @@
     },
     {
       "name": "g_tune_reason",
-      "address": "0x20000198",
+      "address": "0x200001B0",
       "type": "u32",
-      "color": "#E165983B"
+      "color": "#962E267F"
     },
     {
       "name": "g_tune_reference",
-      "address": "0x200001B0",
+      "address": "0x200001C8",
       "type": "f32",
-      "color": "#D0685900"
+      "color": "#9D8880C9"
     },
     {
       "name": "g_tune_result",
-      "address": "0x20000194",
+      "address": "0x200001AC",
       "type": "u32",
-      "color": "#ED5D03BA"
+      "color": "#5592EA4E"
     },
     {
       "name": "g_tune_saturated",
-      "address": "0x200001A0",
+      "address": "0x200001B8",
       "type": "u32",
-      "color": "#ECDBC47E"
+      "color": "#8B7766E9"
     },
     {
       "name": "g_tune_start_seq",
-      "address": "0x200001C0",
+      "address": "0x200001E0",
       "type": "u32",
-      "color": "#B16F51B2"
+      "color": "#FE6EC336"
     },
     {
       "name": "g_tune_state",
-      "address": "0x2000019C",
+      "address": "0x200001B4",
       "type": "u32",
-      "color": "#9CC815B8"
+      "color": "#3749153F"
     },
     {
       "name": "g_tune_stop_seq",
-      "address": "0x200001BC",
+      "address": "0x200001DC",
       "type": "u32",
-      "color": "#48BEA023"
+      "color": "#32278878"
     },
     {
       "name": "g_tune_voltage",
-      "address": "0x200001A4",
+      "address": "0x200001BC",
       "type": "f32",
-      "color": "#49D98F50"
+      "color": "#DDAA9C0F"
     },
     {
       "name": "g_tune_voltage_limit",
       "address": "0x20000004",
       "type": "f32",
-      "color": "#B2DD377F",
+      "color": "#8C67FE70",
       "write_limits": {
         "enabled": true,
         "min": 0.001,

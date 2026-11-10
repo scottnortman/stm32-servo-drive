@@ -62,6 +62,32 @@ int main(void)
     assert(kp==0.8f && ki==50);
     g_tune_kp=0.2f;repo_tune_init();
     assert(g_tune_nv_status==TUNE_GAIN_LOADED && g_tune_kp==0.8f && g_tune_ki==50);
+    // Motion needs the exact persisted pair, a disarmed configuration commit,
+    // and a fresh physical arm before its bounded D-axis command can start.
+    g_tune_mode=TUNE_D_RECIPROCAL;g_tune_axis=0;g_tune_amplitude=3.0f;
+    g_tune_duration=41.0f;g_tune_voltage_limit=2.0f;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);
+    assert(g_tune_result==3 && !repo_tune_take_start());
+    g_tune_ki=2000.0f;++g_tune_apply_seq;poll(false);
+    assert(g_tune_result==0);
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_SAVED);
+    repo_tune_init();assert(g_tune_nv_status==TUNE_GAIN_LOADED);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    assert(repo_tune_d_reciprocal_selected() && repo_tune_field_angle()==0.0f);
+    g_tune_amplitude=5.0f;g_tune_duration=21.0f;g_tune_voltage_limit=3.2f;
+    ++g_tune_apply_seq;poll(true);
+    assert(g_tune_result==2); // no motion reconfiguration after arming
+    repo_tune_disarm();poll(false);
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    repo_tune_disarm();poll(false);
+    g_tune_amplitude=6.0f;g_tune_duration=0.0f;g_tune_voltage_limit=4.0f;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    ++g_tune_stop_seq;poll(true);
+    assert(repo_tune_take_stop());
+    repo_tune_disarm();poll(false);
     // Exercise the actual vendor sampler with five real scalar addresses.
     volatile void *signals[]={&g_tune_reference,&g_tune_measured,&g_tune_cross_current,
                               &g_tune_voltage,&g_tune_saturated};

@@ -27,7 +27,8 @@
 enum { INLS=(1u<<6)|(1u<<7)|(1u<<9), ALIGN_MS=1000u,
        POLE_PAIRS_GEMS=4u, NOMINAL_RPM=10u };
 enum { USER_STOP=1u, FAULT_STOP=2u, RAW_STOP=3u, FILTER_STOP=4u,
-       ADC_STOP=5u, BUS_STOP=6u, CONFIG_STOP=7u, SELF_STOP=8u };
+       ADC_STOP=5u, BUS_STOP=6u, CONFIG_STOP=7u, SELF_STOP=8u,
+       TIMING_STOP=10u };
 static volatile uint32_t millis,reason,start_ms,user_ms,last_adc_ms,last_adc_count;
 static volatile bool running;
 volatile uint32_t g_repo_self_test,g_repo_control_ticks,g_repo_irq_max_cycles;
@@ -139,13 +140,22 @@ void TIM1_UP_TIM10_IRQHandler(void)
     if (!current_feedback_sample_valid()) { stop_drive(ADC_STOP); return; }
     float amps[3];
     current_feedback_get_phase_amps(&amps[0],&amps[1],&amps[2]);
+#ifdef REPO_CURRENT_TUNING
+    // Motion profiles tighten the 6.25 A-capable tuning target's phase trips.
+    // The ADC watchdog threshold is selected at physical arming.
+    const float phase_trip=repo_tune_d_reciprocal_selected() ?
+        (repo_tune_motion_amplitude()==6.0f ? 7.5f :
+         repo_tune_motion_amplitude()==5.0f ? 6.5f : 3.75f) : REPO_FILTER_TRIP_A;
+#else
+    const float phase_trip=REPO_FILTER_TRIP_A;
+#endif
 #ifndef REPO_CURRENT_TUNING
     float sum_squares=0.0f;
 #endif
     for (unsigned int c=0u;c<3u;++c)
     {
         g_repo_phase_amps[c]=amps[c];
-        if (!(fabsf(amps[c])<=REPO_FILTER_TRIP_A)) { stop_drive(FILTER_STOP); return; }
+        if (!(fabsf(amps[c])<=phase_trip)) { stop_drive(FILTER_STOP); return; }
         if (current_adc_raw[c]<16u || current_adc_raw[c]>4079u)
         { stop_drive(ADC_STOP); return; }
 #ifndef REPO_CURRENT_TUNING
@@ -154,12 +164,13 @@ void TIM1_UP_TIM10_IRQHandler(void)
     }
 #ifdef REPO_CURRENT_TUNING
     float id,iq,vd,vq;
-    current_feedback_get_dq(0.0f,&id,&iq);
+    const float field_theta=repo_tune_field_angle();
+    current_feedback_get_dq(field_theta,&id,&iq);
     const bool active=repo_tune_control_tick(g_repo_timer_events,id,iq,amps,&vd,&vq);
     if(running && reason==0u) {
-        if(active) pwm_apply_dq(vd,vq,0.0f);
+        if(active) pwm_apply_dq(vd,vq,field_theta);
         else {GPIOC->BSRR=(uint32_t)INLS<<16;pwm_disable();pwm_apply_dq(0,0,0);}
-        g_repo_theta=0;g_repo_voltage=sqrtf(vd*vd+vq*vq);++g_repo_control_ticks;
+        g_repo_theta=field_theta;g_repo_voltage=sqrtf(vd*vd+vq*vq);++g_repo_control_ticks;
     }
 #else
     const float magnitude=sqrtf(sum_squares*(2.0f/3.0f));
@@ -206,6 +217,10 @@ void TIM1_UP_TIM10_IRQHandler(void)
 #endif
     const uint32_t duration=DWT->CYCCNT-cycle;
     if (duration>g_repo_irq_max_cycles) { g_repo_irq_max_cycles=duration; }
+#ifdef REPO_CURRENT_TUNING
+    if(repo_tune_d_reciprocal_selected() && duration>4500u)
+    { stop_drive(TIMING_STOP); }
+#endif
 }
 
 static bool regular_read(uint8_t channel,uint16_t *value)
@@ -389,7 +404,7 @@ int main(void)
     uart_text("Original repo signed d/q PI,PWM,ADC. Fixed electrical frame; no rotor feedback.\r\n");
     uart_text("Default D-axis0.5A step,1s test,0.75V ceiling. Gains are starting values.\r\n");
     uart_text("USER arms at ZERO output. Apply settings then increment START in MCUViewer.\r\n");
-    uart_text("Each test coasts at its deadline; USER/fault disarms. Re-arm with USER.\r\n");
+    uart_text("Bounded tests auto-stop; 6A motion repeats until USER/stop/fault. Re-arm with USER.\r\n");
 #elif defined(REPO_RECIPROCAL)
 #ifdef REPO_RECIP_QUAD_SPEED
     uart_text("1s alignment,thenonecommandedrevolutionFORWARDandBACK;5sperleg,cosineaccel/decel.\r\n");
@@ -522,7 +537,14 @@ arm_again:
         float low=adc_offset[0],high=adc_offset[0];
         for (unsigned int c=1u;c<3u;++c)
         { if (adc_offset[c]<low) { low=adc_offset[c]; } if (adc_offset[c]>high) { high=adc_offset[c]; } }
-        const uint32_t trip=(uint32_t)(REPO_RAW_TRIP_A/AMPS_PER_COUNT);
+#ifdef REPO_CURRENT_TUNING
+        const float raw_trip_a=repo_tune_d_reciprocal_selected() ?
+        (repo_tune_motion_amplitude()==6.0f ? 8.0f :
+         repo_tune_motion_amplitude()==5.0f ? 7.0f : 4.0f) : REPO_RAW_TRIP_A;
+#else
+        const float raw_trip_a=REPO_RAW_TRIP_A;
+#endif
+        const uint32_t trip=(uint32_t)(raw_trip_a/AMPS_PER_COUNT);
         ADC1->LTR=(uint32_t)low-trip; ADC1->HTR=(uint32_t)high+trip;
         pi_init(&amplitude_limit,0.0f,4.0f,0.0f,REPO_PHASE_VMAX_V);
 #ifdef REPO_MCUVIEWER

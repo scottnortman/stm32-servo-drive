@@ -49,5 +49,87 @@ int main(void)
         assert(s.id_ref>=0 && s.id_ref<=p.amplitude);
     }
     assert(!s.active);
+    // Open-loop field command: one cosine-eased mechanical turn out and back,
+    // with D-axis current control and a hard 41 s deadline.
+    p=settings();p.mode=TUNE_D_RECIPROCAL;p.amplitude=3.0f;
+    p.duration=41.0f;p.voltage_limit=2.5f;p.kp=0.8f;p.ki=2000.0f;
+    assert(current_tuning_valid(&p));
+    p.axis=1;assert(!current_tuning_valid(&p));p.axis=0;
+    p.amplitude=3.01f;assert(!current_tuning_valid(&p));p.amplitude=3.0f;
+    p.duration=40.0f;assert(!current_tuning_valid(&p));p.duration=41.0f;
+    p.voltage_limit=2.51f;assert(!current_tuning_valid(&p));p.voltage_limit=2.5f;
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    assert(current_tuning_field_angle(&s)==0.0f);
+    s.sample=10000u;current_tuning_step(&s,0,0);
+    assert(s.id_ref==3.0f && s.iq_ref==0.0f &&
+           hypotf(s.vd,s.vq)<=2.50001f);
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    float aligned_id=0.0f;
+    const float aligned_decay=expf(-0.6f*DT_CURRENT/0.0003f);
+    for(unsigned n=0;n<18000u;++n) {
+        assert(current_tuning_field_angle(&s)==0.0f);
+        current_tuning_step(&s,aligned_id,0.0f);
+        aligned_id=aligned_id*aligned_decay+s.vd/0.6f*(1.0f-aligned_decay);
+        assert(hypotf(s.vd,s.vq)<=2.50001f);
+    }
+    assert(fabsf(aligned_id-3.0f)<0.01f && !s.saturated);
+    const uint32_t align=20000u,leg=(s.samples-align)/2u;
+    s.sample=align+leg/2u;s.prepared_sample=UINT32_MAX;
+    current_tuning_field_angle(&s);
+    assert(fabsf(s.mechanical_position-M_PI)<1e-4f && s.half_moves==0u);
+    s.sample=align+leg;s.prepared_sample=UINT32_MAX;
+    current_tuning_field_angle(&s);
+    assert(fabsf(s.mechanical_position-FOC_TWO_PI)<1e-4f && s.half_moves==1u);
+    s.sample=s.samples;s.prepared_sample=UINT32_MAX;
+    assert(current_tuning_field_angle(&s)==0.0f && s.half_moves==2u);
+    current_tuning_step(&s,0,0);
+    assert(s.completed && !s.active && s.vd==0 && s.vq==0);
+    // Faster 5 A profile keeps the same trajectory shape and tighter bounds.
+    p.amplitude=5.0f;p.duration=21.0f;p.voltage_limit=3.2f;
+    assert(current_tuning_valid(&p));
+    p.duration=41.0f;assert(!current_tuning_valid(&p));p.duration=21.0f;
+    p.voltage_limit=3.21f;assert(!current_tuning_valid(&p));p.voltage_limit=3.2f;
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    assert(s.samples==420000u);
+    aligned_id=0.0f;
+    for(unsigned n=0;n<18000u;++n) {
+        current_tuning_field_angle(&s);
+        current_tuning_step(&s,aligned_id,0.0f);
+        aligned_id=aligned_id*aligned_decay+s.vd/0.6f*(1.0f-aligned_decay);
+        assert(hypotf(s.vd,s.vq)<=3.20001f);
+    }
+    assert(fabsf(aligned_id-5.0f)<0.02f && !s.saturated);
+    const uint32_t fast_leg=(s.samples-align)/2u;
+    s.sample=align+fast_leg;s.prepared_sample=UINT32_MAX;
+    current_tuning_field_angle(&s);
+    assert(fabsf(s.mechanical_position-FOC_TWO_PI)<1e-4f && s.half_moves==1u);
+    s.sample=s.samples;s.prepared_sample=UINT32_MAX;
+    current_tuning_field_angle(&s);current_tuning_step(&s,0,0);
+    assert(s.completed && s.half_moves==2u && !s.active && s.vd==0);
+    // A zero-duration 6 A request repeats 2.5-second legs until explicitly
+    // stopped. The cycle counter must wrap without ending the experiment.
+    p.amplitude=6.0f;p.duration=0.0f;p.voltage_limit=4.0f;
+    assert(current_tuning_valid(&p));
+    p.duration=11.0f;assert(!current_tuning_valid(&p));p.duration=0.0f;
+    p.amplitude=6.01f;assert(!current_tuning_valid(&p));p.amplitude=6.0f;
+    p.voltage_limit=4.01f;assert(!current_tuning_valid(&p));p.voltage_limit=4.0f;
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    assert(s.samples==120000u && s.active && !s.completed);
+    aligned_id=0.0f;
+    for(uint32_t n=0;n<220000u;++n) {
+        current_tuning_field_angle(&s);
+        current_tuning_step(&s,aligned_id,0.0f);
+        aligned_id=aligned_id*aligned_decay+s.vd/0.6f*(1.0f-aligned_decay);
+        assert(s.active && !s.completed && hypotf(s.vd,s.vq)<=4.00001f);
+        if(n==70000u || n==170000u)
+            assert(fabsf(s.mechanical_position-FOC_TWO_PI)<1e-4f);
+        if(n==119999u || n==219999u)
+            assert(s.sample==align && s.half_moves==(n==119999u ? 2u : 4u));
+    }
+    assert(fabsf(aligned_id-6.0f)<0.02f && s.id_ref==6.0f);
+    current_tuning_field_angle(&s);
+    assert(s.mechanical_position==0.0f && s.half_moves==4u);
+    current_tuning_stop(&s);
+    assert(!s.active && s.vd==0.0f && !s.completed);
     puts("PASS: config bounds,actual repo PI againstRL plant,bothaxes,vector saturation,finite chirp,test completion");
 }

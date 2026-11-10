@@ -51,7 +51,9 @@ def connect():
         pass
 
 
-def main(nv=False, elf=None):
+def main(nv=False, elf=None, motion=False):
+    if nv and motion:
+        raise ValueError("select either --nv or --motion")
     connect()
     # This script intentionally starts from an empty project. Save other work first.
     tool("new_project")
@@ -59,12 +61,16 @@ def main(nv=False, elf=None):
     tool("set_elf_parser", parser="gdb")
     tool("set_debug_probe", type="stlink", serial_number=SERIAL,
          speed_khz=1000, mode="normal", keep_connection=0)
-    tool("set_sampling", sample_frequency_hz=100, viewport_width_ms=2000)
+    tool("set_sampling", sample_frequency_hz=100,
+         viewport_width_ms=43000 if motion else 2000)
     tool("set_recorder_enabled", enabled=1)
     # FREE has 20 live slots. The save view swaps the two chirp-frequency
     # requests for a save command and its read-only status.
     parameters = {name: limits for name, limits in PARAMETERS.items()
-                  if not nv or name not in ("f_start", "f_end")}
+                  if not (nv or motion) or name not in ("f_start", "f_end")}
+    if motion:
+        parameters.update(mode=(0, 4), amplitude=(0, 6), duration=(0, 41),
+                          voltage_limit=(0.001, 4))
     variables = [{"name": "g_tune_" + name, "type": "f32"} for name in parameters]
     variables += [{"name": "g_tune_" + name + "_seq", "type": "u32"}
                   for name in ["apply", "start", "stop"]]
@@ -74,6 +80,9 @@ def main(nv=False, elf=None):
     if nv:
         variables += [{"name": "g_tune_nv_" + name, "type": "u32"}
                       for name in ["save_seq", "status"]]
+    if motion:
+        variables += [{"name": "g_tune_command_mech_rev", "type": "f32"},
+                      {"name": "g_tune_half_moves", "type": "u32"}]
     assert len(variables) == 20 and len(SIGNALS) == 5
     tool("add_variable", variables=json.dumps(variables))
     for name, limits in parameters.items():
@@ -86,6 +95,11 @@ def main(nv=False, elf=None):
     tool("add_plot", group="Live current and controls", name="Voltage (V) and saturation")
     tool("add_variable_to_plot", group="Live current and controls", plot="Voltage (V) and saturation",
          variables=json.dumps(SIGNALS[3:]))
+    if motion:
+        tool("add_plot", group="Live current and controls", name="Commanded motion (revolutions)")
+        tool("add_variable_to_plot", group="Live current and controls",
+             plot="Commanded motion (revolutions)",
+             variables=json.dumps(["g_tune_command_mech_rev"]))
     tool("add_plot", group="Live current and controls", name="Parameters and commands", type="table")
     tool("add_variable_to_plot", group="Live current and controls", plot="Parameters and commands",
          variables=json.dumps([v["name"] for v in variables if v["name"] not in SIGNALS]))
@@ -102,17 +116,23 @@ def main(nv=False, elf=None):
          pre_trigger_samples=200, enabled=1)
     tool("set_recorder_mode", mode="normal")
     tool("refresh_variable_addresses")
-    name = "current-loop-free-nv.mcuv" if nv else "current-loop-free.mcuv"
+    name = ("current-loop-free-motion.mcuv" if motion else
+            "current-loop-free-nv.mcuv" if nv else "current-loop-free.mcuv")
     tool("save_project_as", path=str(ROOT / "tools/tuning" / name))
     tool("list_groups")
     tool("get_recorder_settings")
+    if motion:
+        tool("set_active_group", name="Live current and controls")
+        tool("save_project")
 
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--nv",action="store_true",
                         help="20-slot gain-save view; use only with the matching new image")
+    parser.add_argument("--motion",action="store_true",
+                        help="20-slot D-axis reciprocal view; use only with the matching motion image")
     parser.add_argument("--elf",type=Path,
                         help="ELF matching the flashed image (default: build-bringup/repo-current-tuning.elf)")
     args=parser.parse_args()
-    main(args.nv,args.elf.resolve() if args.elf else None)
+    main(args.nv,args.elf.resolve() if args.elf else None,args.motion)
