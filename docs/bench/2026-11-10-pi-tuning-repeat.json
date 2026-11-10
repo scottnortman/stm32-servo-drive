@@ -1,0 +1,80 @@
+{
+  "timestamp_utc": "20261110T215301Z",
+  "kp_V_per_A": 0.8,
+  "ki_V_per_A_s": 2000,
+  "voltage_limit_V": 0.75,
+  "firmware_scope": "pre-integration baseline; integrated firmware remains unflashed",
+  "steps": [
+    {
+      "axis": "D",
+      "samples": 1638,
+      "sample_us": 50,
+      "crossing_average_us": 150,
+      "rise_10_90_ms": 0.5000000000000004,
+      "final_10ms_mean_A": 0.5001169050000001,
+      "raw_peak_A": 0.569922,
+      "first_5ms_three_sample_peak_A": 0.5123743333333333,
+      "saturation_samples": 0,
+      "voltage_peak_abs_V": 0.549418,
+      "cross_current_peak_abs_A": 0.050071,
+      "capture": "docs/bench/current-tuning/reproduce-20261110T215301Z-D-05A-kp08-ki2000.json"
+    },
+    {
+      "axis": "Q",
+      "samples": 1638,
+      "sample_us": 50,
+      "crossing_average_us": 150,
+      "rise_10_90_ms": 0.35000000000000137,
+      "final_10ms_mean_A": 0.49995447,
+      "raw_peak_A": 0.555092,
+      "first_5ms_three_sample_peak_A": 0.519652,
+      "saturation_samples": 0,
+      "voltage_peak_abs_V": 0.575381,
+      "cross_current_peak_abs_A": 0.05775,
+      "capture": "docs/bench/current-tuning/reproduce-20261110T215301Z-Q-05A-kp08-ki2000.json"
+    }
+  ],
+  "session": {
+    "timestamp_utc": "20261110T215301Z",
+    "firmware": "pre-integration baseline; original MCUViewer project",
+    "captures": [
+      "docs/bench/current-tuning/reproduce-20261110T215301Z-D-05A-kp08-ki2000.json",
+      "docs/bench/current-tuning/reproduce-20261110T215301Z-Q-05A-kp08-ki2000.json"
+    ],
+    "before": {
+      "g_tune_state": 1.0,
+      "g_tune_reason": 0.0,
+      "g_tune_result": 0.0,
+      "g_tune_kp": 0.800000011920929,
+      "g_tune_ki": 2000.0,
+      "g_tune_voltage_limit": 0.75,
+      "g_tune_start_seq": 15.0,
+      "g_tune_stop_seq": 2.0
+    },
+    "after": {
+      "g_tune_state": 0.0,
+      "g_tune_reason": 9.0,
+      "g_tune_result": 0.0,
+      "g_tune_kp": 0.800000011920929,
+      "g_tune_ki": 2000.0,
+      "g_tune_apply_seq": 17.0,
+      "g_tune_start_seq": 17.0,
+      "g_tune_stop_seq": 3.0,
+      "g_tune_reference": 0.0,
+      "g_tune_voltage": 0.0,
+      "g_tune_saturated": 0.0
+    }
+  },
+  "post_hotplug": {
+    "g_repo_self_test": 1,
+    "g_tune_recorder_fault": 0,
+    "g_tune_recorder_max_cycles": 545,
+    "GPIOB_ODR": 0,
+    "GPIOC_ODR": 256,
+    "TIM1_BDTR": 0,
+    "SCB_CFSR": 0,
+    "ENABLE_INLs_MOE_low": true,
+    "operation": "read-only HOTPLUG; no halt, reset, or flash"
+  },
+  "user_confirmed_setup": "12 V, initial 0.25 A supply input limit, secured unloaded motor, Hall leads disconnected; physical USER arming"
+}

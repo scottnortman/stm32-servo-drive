@@ -35,6 +35,15 @@ window limit without lowering the sampling rate.
 
 ## Updated PI tune: Kp=0.8, Ki=2000
 
+Repeat at 16:53 EST on 2026-11-10 confirmed both 0.5 A steps on the same
+pre-integration image with Kp0.8/Ki2000 and the 0.75 V ceiling. Three-sample
+10-90% rise estimates were D0.50 ms/Q0.35 ms, final means D0.50012 A/Q0.49995 A,
+with no saturation or faults. See `bench/2026-11-10-pi-tuning-repeat.json` and its
+raw capture paths. The motor was explicitly disarmed afterward (state0/reason9,
+apply/start17, stop3), and ENABLE/INLs/MOE were verified LOW through read-only
+HOTPLUG. MCUViewer is stopped on live controls; captures and the comparison plot
+are saved separately. This is newer than the displayed-capture endstate below.
+
 The existing repo PI was tuned live from raw 20 kHz captures. Tested on both
 stationary axes with 0.5 A steps and 400/600/800 Hz current references spanning
 0..0.5 A. Voltage vector ceiling stays 0.75 V; protections and firmware unchanged.

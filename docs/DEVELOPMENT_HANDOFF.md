@@ -23,6 +23,9 @@ The original `jnzim` repository is only an upstream source for receiving updates
 - Active integrated branch: `scott/upstream-integration`.
 - Preserved baseline branch: `scott/nucleo-current-tuning`, commit `836b762`.
 - Bench baseline tag: `bench/current-pi-2026-11-10`.
+- Repeat-results/source checkpoint tag: `checkpoint/current-pi-repeat-2026-11-10`.
+  This tags integrated source plus the repeated bench evidence; the tested MCU
+  firmware remains the pre-integration baseline, not the integrated build.
 - Integration merge: `321aec5`, parents baseline + upstream `eda7136`, incorporating
   179 newer upstream commits. Later documentation commits build on this merge.
 
@@ -65,14 +68,27 @@ Gains are **RAM-only**. Reset defaults remain Kp0.2/Ki50. The tested settings ar
 recorded in `tools/tuning/current-loop-gains.json`; opening the MCUViewer project
 does not automatically apply them.
 
+Repeat on 2026-11-10 at 16:53 EST used the same pre-integration image through
+MCUViewer, after the user confirmed the bench setup and physically armed USER.
+Both bounded 0.5 A steps at Kp0.8/Ki2000 and the 0.75 V ceiling completed with
+zero saturation samples. At 20 kHz, using the same three-sample crossing method,
+10-90% rise was D0.50 ms/Q0.35 ms; final 10 ms means were D0.50012 A/Q0.49995 A.
+The D repeat was slightly slower than the earlier 0.35..0.40 ms result. These
+steps do not remeasure tone response or bandwidth. Raw captures are checked in
+under `docs/bench/current-tuning/reproduce-20261110T215301Z-*.json`; results and
+post-test diagnostics are in `docs/bench/2026-11-10-pi-tuning-repeat.json`.
+
 ## Hardware and safety state at handoff
 
 The integrated code has **not** been flashed. The MCU was last left on the
 pre-integration tuning image, fully disarmed: ENABLE, all INLs and PWM MOE LOW;
 self-test passed, no CPU/Recorder fault, intentional frontend stop reason9.
-Runtime settings were mode1, axis0, amplitude0.5 A, Kp0.8/Ki2000, duration1 s,
-voltage ceiling0.75 V, apply/start sequence15, stop sequence2. These describe the
-last observation, not a guarantee of the current hardware state.
+After the 16:53 EST repeat, runtime settings were mode1, axis1, amplitude0.5 A,
+Kp0.8/Ki2000, duration1 s, voltage ceiling0.75 V, apply/start sequence17 and stop
+sequence3. Recorder maximum remains545cycles, self-test1 and no CPU/Recorder
+fault. MCUViewer is stopped on the live controls in the original baseline
+project; raw step captures and the comparison plot are saved separately. These
+describe the last observation, not a guarantee of the current hardware state.
 
 EVM power may still be ON. Get fresh EVM-power-OFF confirmation before programming
 or resets. USER physically arms at zero drive; a GUI command starts each bounded
