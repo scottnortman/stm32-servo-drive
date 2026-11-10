@@ -1,0 +1,37 @@
+{
+  "HEX_SHA256": "7001D6E329A9BBE24F1DCEC77CDCC5700231F4C5A8756EF912C282ECCADB67B1",
+  "ADC_vector": "0x8000519",
+  "selftest_address": "0x200000a4",
+  "timer_count_address": "0x20000098",
+  "fault_irq_count_address": "0x20000094",
+  "call_chain_verified": {
+    "repo_ADC_IRQHandler": "ADC_IRQHandler",
+    "TIM1_UP_TIM10_IRQHandler": "open_loop_step",
+    "open_loop_step": "pwm_apply_dq",
+    "pwm_apply_dq": "pwm_apply_phase_volts"
+  },
+  "unchanged_reference_sources": [
+    "src/pwm.c",
+    "src/loops.c",
+    "src/current_feedback.c",
+    "src/control.c",
+    "Include/config.h",
+    "Include/board_f411.h"
+  ],
+  "fix": "PA4 analog/no-pull board configuration and boot check only",
+  "live_AB_test": {
+    "supply_V": 12,
+    "supply_mA": 4,
+    "before_ADC_raw": 74,
+    "after_ADC_raw": 364,
+    "after_estimate_mV": 11804,
+    "drive_outputs": "disabled throughout"
+  },
+  "flash": "VERIFIED/reset",
+  "boot_self_test": 1,
+  "PA4_analog": true,
+  "PA4_no_pull": true,
+  "ENABLE_INLs_MOE": "LOW",
+  "motor_control_ticks": 0,
+  "powered_motor_result": "PENDING"
+}

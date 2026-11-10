@@ -1,0 +1,24 @@
+{
+  "user_result": "2.5 clockwise shaft turns; smooth segments with pole-to-pole jumps",
+  "commanded_electrical_turns": 10,
+  "shaft_revolutions_reported": 2.5,
+  "pole_pairs_from_net_travel": 4.0,
+  "poles_from_net_travel": 8.0,
+  "phase_current_A": [
+    -0.004731927532702684,
+    -1.2155152559280396,
+    1.2103618383407593
+  ],
+  "current_magnitude_A": 1.4005892827053439,
+  "voltage_amplitude_V": 0.8708822727203369,
+  "final_field_angle_rad": 0.0,
+  "bus_preflight_mV": 11755,
+  "max_control_IRQ_us": 14.62,
+  "control_ticks": 3848469,
+  "running": 1,
+  "stop_reason": 0,
+  "ENABLE_ODR": 1,
+  "nFAULT": 1,
+  "interpretation": "Net travel strongly supports4polepairs/8poles,consistent with motor specification. Jumpy rotor following remains unresolved; no continuous smooth tracking demonstrated.",
+  "new_firmware_change": "None"
+}

@@ -1,0 +1,31 @@
+{
+  "source": "User REPO MOTOR v2 sustained run,27RUNlines andSTOP",
+  "shaft_observation": "User confirms: moved partway then jumped back; no completed continuous revolutions",
+  "control_ticks_at_stop": 542233,
+  "ADC_samples_at_stop": 542635,
+  "estimated_run_s": 27.10080534,
+  "max_IRQ_CPUticks": 1367,
+  "max_IRQ_us": 13.67,
+  "RUN_phase_magnitude_nominal_mA_min": 688.2291285126875,
+  "RUN_phase_magnitude_nominal_mA_max": 724.2554797859661,
+  "RUN_voltage_mV_range": [
+    472,
+    482
+  ],
+  "RUN_bus_mV_range": [
+    11720,
+    12082
+  ],
+  "stop_reason": 6,
+  "stop_bus_mV": 12901,
+  "stop_phase_mA": [
+    -285,
+    -415,
+    678
+  ],
+  "stop_electrical_angle_mdeg": 24461,
+  "retained_bus_ADC_raw": 353,
+  "factory_VREFINT_cal": 1510,
+  "bus_cause": "Unresolved.12901insidebuslimits; original reason6 also coversVDDA/range/conversion faults. No sub-check snapshot.",
+  "next_user_request": "Exactly10slow electricalcycles to count shaft turns; valid pole inference only if no slip."
+}

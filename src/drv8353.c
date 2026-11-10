@@ -160,10 +160,10 @@ void drv8353_init(void)
     // Push-pull outputs for SCK/MOSI. MISO setting does not matter as input.
     GPIOA->OTYPER &= ~(BIT(PIN_DRV_SCK) | BIT(PIN_DRV_MOSI));
 
-    // DRV8353 SDO is open-drain. External pull-up is preferred.
-    // Internal pull-up is enabled as a backup.
+    // DRV8353 SDO is open-drain. The DRV8353RS-EVM already provides a 1 kOhm
+    // pull-up to its local 3.3 V rail (R25), so do not enable the STM32 pull-up
+    // and do not couple the Nucleo and EVM 3.3 V rails through another pull-up.
     GPIOA->PUPDR &= ~(3u << (PIN_DRV_MISO * 2u));
-    GPIOA->PUPDR |=  (1u << (PIN_DRV_MISO * 2u));
 
     // -------------------------------------------------------------------------
     // PC8 = DRV nSCS, manual chip select, idle high
@@ -192,14 +192,18 @@ void drv8353_init(void)
 
     drv_enable_low();
 
+    // If the device was previously awake, hold ENABLE low long enough to
+    // complete the documented sleep/reset sequence before waking it again.
+    // At a 100 MHz core clock this conservative loop is longer than tSLEEP.
+    drv_delay_cycles(100000);
+
     // -------------------------------------------------------------------------
-    // PB1 = DRV nFAULT input with pull-up
+    // PB1 = DRV nFAULT input. The EVM supplies its own nFAULT pull-up/LED path.
     // -------------------------------------------------------------------------
 
     GPIOB->MODER &= ~(3u << (DRV_NFAULT_PIN * 2u));
 
     GPIOB->PUPDR &= ~(3u << (DRV_NFAULT_PIN * 2u));
-    GPIOB->PUPDR |=  (1u << (DRV_NFAULT_PIN * 2u));
 
     // -------------------------------------------------------------------------
     // SPI1 setup
@@ -349,22 +353,31 @@ bool drv8353_spi_self_test(void)
     uint16_t fs1;
     uint16_t vgs;
     uint16_t ctl;
+    uint16_t ocp;
 
     fs1 = drv8353_read_reg(DRV8353_REG_FAULT_STATUS_1);
     vgs = drv8353_read_reg(DRV8353_REG_VGS_STATUS_2);
     ctl = drv8353_read_reg(DRV8353_REG_DRIVER_CONTROL);
+    ocp = drv8353_read_reg(DRV8353_REG_OCP_CONTROL);
 
     // Common broken-bus case:
     // SDO/MISO pulled high or floating high gives all ones.
     if ((fs1 == 0x07FFu) &&
         (vgs == 0x07FFu) &&
-        (ctl == 0x07FFu))
+        (ctl == 0x07FFu) &&
+        (ocp == 0x07FFu))
     {
         return false;
     }
 
-    // All zeros can be a valid no-fault state, but it can also mean MISO stuck low.
-    // So we do not fail that here.
+    // The three status/control registers above may legitimately be zero, but
+    // OCP_CONTROL has nonzero reset fields. Four zero reads indicate a stuck-
+    // low or unconnected SDO path, not a healthy default register image.
+    if ((fs1 == 0u) && (vgs == 0u) && (ctl == 0u) && (ocp == 0u))
+    {
+        return false;
+    }
+
     return true;
 }
 

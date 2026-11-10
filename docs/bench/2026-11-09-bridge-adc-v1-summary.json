@@ -1,0 +1,113 @@
+{
+  "reports": 10,
+  "baseline": {
+    "A": {
+      "samples": 256,
+      "mean_raw": 2036.828,
+      "min": 2007,
+      "max": 2047,
+      "mean_mv": 1649
+    },
+    "B": {
+      "samples": 256,
+      "mean_raw": 2027.953,
+      "min": 2007,
+      "max": 2051,
+      "mean_mv": 1642
+    },
+    "C": {
+      "samples": 256,
+      "mean_raw": 2026.082,
+      "min": 1995,
+      "max": 2043,
+      "mean_mv": 1640
+    }
+  },
+  "acquisition_ms": {
+    "min": 61,
+    "max": 62
+  },
+  "bus_mv": {
+    "min": 11695,
+    "max": 11770
+  },
+  "vdda_mv": {
+    "min": 3315,
+    "max": 3315
+  },
+  "phases": {
+    "A": {
+      "mean_raw": {
+        "min": 2035.914,
+        "max": 2037.055
+      },
+      "mean_mv": {
+        "min": 1648,
+        "max": 1649
+      },
+      "delta_raw": {
+        "min": -0.914,
+        "max": 0.226
+      },
+      "max_abs_mean_delta_raw": 0.914,
+      "max_abs_mean_delta_mv": 0.739904761904762,
+      "max_block_peak_to_peak_raw": 118,
+      "max_block_peak_to_peak_mv": 95.52380952380952,
+      "all_samples_raw_extremes": {
+        "min": 1979,
+        "max": 2101
+      }
+    },
+    "B": {
+      "mean_raw": {
+        "min": 2026.398,
+        "max": 2027.578
+      },
+      "mean_mv": {
+        "min": 1640,
+        "max": 1641
+      },
+      "delta_raw": {
+        "min": -1.554,
+        "max": -0.375
+      },
+      "max_abs_mean_delta_raw": 1.554,
+      "max_abs_mean_delta_mv": 1.258,
+      "max_block_peak_to_peak_raw": 120,
+      "max_block_peak_to_peak_mv": 97.14285714285714,
+      "all_samples_raw_extremes": {
+        "min": 1945,
+        "max": 2097
+      }
+    },
+    "C": {
+      "mean_raw": {
+        "min": 2023.898,
+        "max": 2025.461
+      },
+      "mean_mv": {
+        "min": 1638,
+        "max": 1640
+      },
+      "delta_raw": {
+        "min": -2.183,
+        "max": -0.621
+      },
+      "max_abs_mean_delta_raw": 2.183,
+      "max_abs_mean_delta_mv": 1.767190476190476,
+      "max_block_peak_to_peak_raw": 110,
+      "max_block_peak_to_peak_mv": 89.04761904761905,
+      "all_samples_raw_extremes": {
+        "min": 1973,
+        "max": 2091
+      }
+    }
+  },
+  "stop": {
+    "reason": 1,
+    "time_ms": 34045,
+    "nfault": 1,
+    "bus_mv_last": 11747,
+    "enable_low_reported": true
+  }
+}

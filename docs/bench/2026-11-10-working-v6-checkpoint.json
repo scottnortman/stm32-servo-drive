@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-11-10T12:55:22-05:00",
+  "user_report": "it is working; checkpoint",
+  "status": "user-confirmed working baseline",
+  "branch": "jz-dev",
+  "git_head": "d293fc112ad339da51cb5083a062ada51a2444a8",
+  "target": "repo-reciprocal-6250ma-4xspeed",
+  "HEX_SHA256": "9275845060B8FC061B4B8F4D7DFEC533ED96EBAA1B2F4367D6D6A21FD8F1DF37",
+  "current_target_A": 6.25,
+  "leg_seconds": 5,
+  "supply_V": 12,
+  "supply_input_limit_A": 3.5,
+  "hardware_touched_for_checkpoint": false,
+  "git_commit_created": false,
+  "context_file": "C:/Users/scott/.gstack/projects/jnzim-stm32-servo-drive/checkpoints/20261110-175315-working-v6-6250ma-5s-motion.md",
+  "source_archive": "C:/Users/scott/.gstack/projects/jnzim-stm32-servo-drive/checkpoints/20261110-175315-working-v6-6250ma-5s-motion.zip"
+}

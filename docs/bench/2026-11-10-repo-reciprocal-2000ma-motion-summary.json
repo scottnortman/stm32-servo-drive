@@ -1,0 +1,14 @@
+{
+  "user_observation": "Approximately +/-0.5 revolution sinusoidal motion; still uneven.",
+  "phase_amps_snapshot": [
+    1.4556241035461426,
+    -1.9087202548980713,
+    0.4478246867656708
+  ],
+  "current_vector_magnitude_A": 1.9937571721684064,
+  "voltage_amplitude_V": 1.2130955457687378,
+  "command_half_moves_snapshot": 6,
+  "running": true,
+  "stop_reason": 0,
+  "snapshot_is_not_rotor_feedback": true
+}

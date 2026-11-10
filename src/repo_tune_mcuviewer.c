@@ -1,0 +1,171 @@
+// MCUViewer is an observer and command mailbox; the repository PI remains the controller.
+#include "repo_tune_link.h"
+#include "repo_tune_mcuviewer.h"
+#include "stm32f4xx.h"
+#include "recorder.h"
+
+volatile float g_tune_mode=TUNE_CURRENT_STEP,g_tune_axis,g_tune_amplitude=0.5f;
+volatile float g_tune_kp=0.2f,g_tune_ki=50,g_tune_f_start=5,g_tune_f_end=200;
+volatile float g_tune_duration=1,g_tune_voltage_limit=0.75f;
+// RAM interface version also keeps editable scalars away from the SRAM boundary
+// that MCUViewer 1.4 currently excludes during automatic address resolution.
+volatile uint32_t g_tune_interface_version=0x00010001u;
+volatile uint32_t g_tune_apply_seq,g_tune_start_seq,g_tune_stop_seq;
+volatile float g_tune_reference,g_tune_measured,g_tune_cross_current,g_tune_voltage;
+volatile uint32_t g_tune_saturated,g_tune_state,g_tune_reason,g_tune_result;
+volatile uint32_t g_tune_recorder_max_cycles,g_tune_recorder_fault;
+static CurrentTuning tune;
+static uint32_t applied,started,stopped;
+static bool start_requested,stop_requested,config_ok;
+
+static CurrentTuneConfig requested(void)
+{
+    return (CurrentTuneConfig){g_tune_mode,g_tune_axis,g_tune_amplitude,
+        g_tune_kp,g_tune_ki,g_tune_f_start,g_tune_f_end,g_tune_duration,g_tune_voltage_limit};
+}
+void repo_tune_init(void)
+{
+    const CurrentTuneConfig p=requested();
+    current_tuning_init(&tune,&p);
+    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010001u;
+}
+static bool same_experiment(const CurrentTuneConfig *a,const CurrentTuneConfig *b)
+{
+    return a->mode==b->mode && a->axis==b->axis && a->amplitude==b->amplitude &&
+        a->f_start==b->f_start && a->f_end==b->f_end &&
+        a->duration==b->duration && a->voltage_limit==b->voltage_limit;
+}
+void repo_tune_poll(uint32_t now,bool armed,uint32_t reason,uint32_t irq_cycles)
+{
+    (void)now;(void)irq_cycles;
+    // Stop has priority over simultaneous apply/start. Sequences are consumed,
+    // including rejected commands: a stale write cannot start after re-arming.
+    if(g_tune_stop_seq!=stopped) {
+        stopped=g_tune_stop_seq;started=g_tune_start_seq;
+        stop_requested=true;start_requested=false;
+    }
+    if(g_tune_apply_seq!=applied) {
+        const uint32_t seq=g_tune_apply_seq;
+        __DMB();const CurrentTuneConfig p=requested();__DMB();
+        applied=seq;
+        if(seq!=g_tune_apply_seq || !current_tuning_valid(&p)) {
+            config_ok=false;g_tune_result=1;
+        } else {
+            const uint32_t mask=__get_PRIMASK();__disable_irq();
+            if(tune.active && !same_experiment(&p,&tune.config)) g_tune_result=2;
+            else {
+                if(tune.active) {
+                    tune.config=p;tune.d.kp=tune.q.kp=p.kp;tune.d.ki=tune.q.ki=p.ki;
+                } else current_tuning_init(&tune,&p);
+                config_ok=true;g_tune_result=0;
+            }
+            __set_PRIMASK(mask);
+        }
+    }
+    if(g_tune_start_seq!=started) {
+        started=g_tune_start_seq;
+        if(!armed || reason || stop_requested || !config_ok || g_tune_recorder_fault) g_tune_result=3;
+        else if(tune.active) g_tune_result=2;
+        else {start_requested=true;g_tune_result=0;}
+    }
+    g_tune_reason=reason;
+    g_tune_state=(armed?1u:0u)|(tune.active?2u:0u);
+}
+bool repo_tune_take_start(void)
+{
+    if(!start_requested) return false;
+    start_requested=false;
+    const uint32_t mask=__get_PRIMASK();__disable_irq();
+    current_tuning_start(&tune);__set_PRIMASK(mask);
+    return true;
+}
+bool repo_tune_take_stop(void)
+{const bool value=stop_requested;stop_requested=false;return value;}
+bool repo_tune_link_alive(uint32_t now)
+{
+    (void)now;
+    // SWD has no application heartbeat. Each excitation has its own 0.1..10s
+    // deadline; disconnecting the viewer cannot leave an unbounded test running.
+    return g_tune_recorder_fault==0;
+}
+void repo_tune_disarm(void)
+{
+    current_tuning_stop(&tune);start_requested=false;g_tune_state=0;
+    g_tune_reference=g_tune_voltage=0;g_tune_saturated=0;
+}
+bool repo_tune_control_tick(uint32_t tick,float id,float iq,const float logical[3],float *vd,float *vq)
+{
+    (void)tick;(void)logical;
+    current_tuning_step(&tune,id,iq);*vd=tune.vd;*vq=tune.vq;
+    const bool d=tune.config.axis==0;
+    const bool voltage=tune.config.mode==TUNE_VOLTAGE_STEP || tune.config.mode==TUNE_VOLTAGE_CHIRP;
+    g_tune_reference=voltage ? (d?*vd:*vq) : (d?tune.id_ref:tune.iq_ref);
+    g_tune_measured=d?id:iq;g_tune_cross_current=d?iq:id;
+    g_tune_voltage=d?*vd:*vq;g_tune_saturated=tune.saturated;
+    return tune.active;
+}
+
+static bool signal_address(uint32_t address)
+{
+    return address==(uint32_t)&g_tune_reference || address==(uint32_t)&g_tune_measured ||
+        address==(uint32_t)&g_tune_cross_current || address==(uint32_t)&g_tune_voltage ||
+        address==(uint32_t)&g_tune_saturated;
+}
+void repo_tune_recorder_tick(void)
+{
+    extern ____Recorder ____recorder;
+    if(g_tune_recorder_fault) return;
+    // Vendor requires recorderStep not to be preempted. Restrict all reads to
+    // these five RAM scalars and all copies to <=20 bytes before masking IRQs.
+    // Internal DRV protections remain active; software nFAULT EXTI can be
+    // deferred by this measured section. Do not change the IRQ priorities.
+    const uint32_t mask=__get_PRIMASK();__disable_irq();
+    const uint32_t cycle=DWT->CYCCNT;
+    if(____recorder.state==____STATE_RUNNING) {
+        const uint32_t count=____recorder.variableCount;
+        bool ok=count>0 && count<=5 && ____recorder.samplesPackSize==count*4u &&
+            ____recorder.maxActualBufferSize<=____RECORDER_BUFFERSIZE &&
+            ____recorder.maxActualBufferSize>=count*4u &&
+            ____recorder.recorderbuf.head<=____recorder.maxActualBufferSize-count*4u;
+        for(uint32_t i=0;ok && i<count;++i)
+            ok=____recorder.sampleList[i].size==4 && signal_address(____recorder.sampleList[i].address);
+        if(____recorder.trigger.state!=____STATE_SETUP)
+            ok=ok && signal_address(____recorder.trigger.sourceAddress) &&
+                (____recorder.trigger.type==____F32 || ____recorder.trigger.type==____U32) &&
+                ____recorder.trigger.preTriggerSamples<____recorder.maxActualBufferSize/(count?count*4u:4u);
+        if(!ok) {____recorder.state=____STATE_INIT;g_tune_recorder_fault=1;}
+        else recorderStep();
+    } else recorderStep();
+    const uint32_t cycles=DWT->CYCCNT-cycle;
+    __set_PRIMASK(mask);
+    if(cycles>g_tune_recorder_max_cycles) g_tune_recorder_max_cycles=cycles;
+    // 8us at 100MHz. A timing/configuration fault disarms through the normal
+    // foreground/SysTick guard and inhibits further captures until reset.
+    if(cycles>800u) g_tune_recorder_fault=2;
+}
+
+bool repo_tune_recorder_self_test(void)
+{
+    // Boot only, before TIM1 starts and with ENABLE/INLs already LOW. Exercise
+    // the full five-variable/float-trigger path and enforce its measured budget.
+    extern ____Recorder ____recorder;
+    volatile void *signals[]={&g_tune_reference,&g_tune_measured,&g_tune_cross_current,
+                              &g_tune_voltage,&g_tune_saturated};
+    ____recorder.variableCount=5;____recorder.samplesPackSize=20;
+    ____recorder.maxActualBufferSize=32760;____recorder.state=____STATE_RUNNING;
+    ____recorder.trigger.state=____STATE_READY;____recorder.trigger.type=____F32;
+    ____recorder.trigger.sourceAddress=(uint32_t)&g_tune_reference;
+    ____recorder.trigger.preTriggerSamples=10;____recorder.trigger.triggerValueFloat=0.5f;
+    for(unsigned i=0;i<5;++i) {
+        ____recorder.sampleList[i].address=(uint32_t)signals[i];
+        ____recorder.sampleList[i].size=4;
+    }
+    for(unsigned i=0;i<16;++i) {g_tune_reference=(float)(i&1u);repo_tune_recorder_tick();}
+    const bool ok=!g_tune_recorder_fault && ____recorder.samplesSinceStart==16 &&
+        ____recorder.recorderbuf.head==320 && ____recorder.trigger.state==____STATE_TRIGGERED;
+    g_tune_reference=0;____recorder.state=____STATE_INIT;
+    ____recorder.trigger.state=____STATE_SETUP;
+    ____recorder.recorderbuf.head=____recorder.recorderbuf.start=0;
+    ____recorder.samplesSinceStart=____recorder.skippedSamples=0;
+    return ok;
+}

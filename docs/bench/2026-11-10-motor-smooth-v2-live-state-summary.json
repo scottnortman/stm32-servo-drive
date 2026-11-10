@@ -1,0 +1,23 @@
+{
+  "read_mode": "HOTPLUG,non-atomic sequential RAM reads; no reset requested",
+  "image": "SMOOTHv2",
+  "elapsed_ms": 87195,
+  "start_ms": 2191,
+  "active": 1,
+  "stop_reason": 0,
+  "motor_on": 1,
+  "motor_failure": 0,
+  "sync_failure": 0,
+  "bus_failure": 0,
+  "progress_count_including_alignment": 339,
+  "sector": 2,
+  "aligned": 1,
+  "last_current_mA": [
+    1,
+    351,
+    -356
+  ],
+  "ENABLE_ODR_bit0": 1,
+  "user_motion": "Better but only a few degrees observed",
+  "interpretation": "Field progressing and driver active without reported protection failure; actual rotor following unmeasured."
+}

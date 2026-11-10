@@ -1,0 +1,50 @@
+{
+  "HEX_SHA256": "B24E90832214BAD34DFE7535D24A87514F431F3DD8F179E75D834A7E8C2DCC65",
+  "original_700mA_HEX_unchanged": true,
+  "unchanged_core_sources": [
+    "src/pwm.c",
+    "src/loops.c",
+    "src/current_feedback.c",
+    "src/control.c",
+    "Include/config.h",
+    "Include/board_f411.h"
+  ],
+  "call_chain": {
+    "repo_ADC_IRQHandler": "ADC_IRQHandler",
+    "TIM1_UP_TIM10_IRQHandler": "repo_pole_count_step",
+    "repo_pole_count_step": "open_loop_step",
+    "open_loop_step": "pwm_apply_dq"
+  },
+  "ADC_vector": "0x800052d",
+  "profile": {
+    "target_phase_amplitude_A": 1.4,
+    "phase_voltage_ceiling_V": 1.1,
+    "filtered_trip_A": 2,
+    "sampled_raw_trip_A": 4,
+    "ADC_sample_cycles": 56,
+    "ADC_SMPR_low9_expected": "0xDB"
+  },
+  "geometry": {
+    "max_phase_CCR": 1477,
+    "latest_trigger_us": 25.49,
+    "sequence_us": 8.16,
+    "next_phase_edge_us": 35.21,
+    "remaining_us": 1.56
+  },
+  "symbols": {
+    "g_repo_self_test": "0x200000a8",
+    "g_repo_electrical_turns": "0x20000068",
+    "g_repo_control_ticks": "0x200000a4",
+    "g_repo_fault_irq_seen": "0x20000098"
+  },
+  "flash": "VERIFIED/reset",
+  "boot_selftest": 1,
+  "electrical_turns": 0,
+  "control_ticks": 0,
+  "ADC_SMPR_current_bits": "0xDB",
+  "TIM_ARR": 2499,
+  "TIM_CCR4": 2449,
+  "ADC_prescaler_divisor": 4,
+  "ENABLE_INLs_MOE": "LOW",
+  "powered_result": "PENDING"
+}

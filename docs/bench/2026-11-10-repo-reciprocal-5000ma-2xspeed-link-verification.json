@@ -1,0 +1,32 @@
+{
+  "HEX_SHA256": "011828E15137B1FF06611DB660D1806198ED0D77B28D2B96BE678FB3AE00ED46",
+  "profile": "5A gain20,3.2V,6.5A filtered/8A raw,ADC28cycles,12V/2.5A supply;unchanged",
+  "motion": "200000ticks/leg at20kHz=10s;1rev forward/back,1s alignment",
+  "symbols": {
+    "g_repo_self_test": "0x200000c0",
+    "g_repo_control_ticks": "0x200000bc",
+    "g_repo_half_moves": "0x2000006c",
+    "g_repo_command_mech_mdeg": "0x20000068",
+    "g_repo_fault_irq_seen": "0x200000b0",
+    "g_repo_csa_control": "0x20000094",
+    "g_repo_phase_amps": "0x20000098",
+    "g_repo_voltage": "0x200000a4"
+  },
+  "original_call_chain_verified": true,
+  "ADC_vector_verified": true,
+  "early_FPU_verified": true,
+  "v4_configuration_fix_retained": true,
+  "prior_slow_5A_image_unchanged": true,
+  "flash": "PROGRAMMED_VERIFIED_RESET",
+  "boot_checks": {
+    "selftest_PASS": true,
+    "fault_IRQ_selftest_once": true,
+    "motion_counters_zero": true,
+    "ENABLE_LOW": true,
+    "INLs_LOW": true,
+    "MOE_LOW": true,
+    "ADC28cycles": true,
+    "core_faults_clear": true,
+    "interrupts_enabled": true
+  }
+}

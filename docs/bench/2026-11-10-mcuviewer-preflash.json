@@ -1,0 +1,43 @@
+{
+  "status": "built/software-tested; NOT FLASHED",
+  "edition": "FREE evaluation",
+  "live_variables": 20,
+  "recorder_signals": 5,
+  "trace_used": 0,
+  "all_project_addresses_match_ELF": true,
+  "hashes": {
+    "build-bringup/repo-current-tuning.hex": "ca26530829f3c7e7e174e4aacfaed9db526a65645f9b6d50a1a1fea2a6a11971",
+    "build-bringup/repo-current-tuning.elf": "cec8de5e37a3a5603cda6bc4fb4fad02d8f48aa4cbfa7a5fe54a57dbdad297cf",
+    "build-bringup/repo-reciprocal-6250ma-4xspeed.hex": "9275845060b8fc061b4b8f4d7dfec533ed96ebaa1b2f4367d6d6a21fd8f1df37"
+  },
+  "boot_symbols": {
+    "repo_ADC_IRQHandler": "0x80005a0",
+    "g_tune_interface_version": "0x20000000",
+    "g_tune_voltage_limit": "0x20000004",
+    "g_tune_duration": "0x20000008",
+    "g_tune_f_end": "0x2000000c",
+    "g_tune_f_start": "0x20000010",
+    "g_tune_ki": "0x20000014",
+    "g_tune_kp": "0x20000018",
+    "g_tune_amplitude": "0x2000001c",
+    "g_tune_mode": "0x20000020",
+    "____recorderSettings": "0x20000024",
+    "g_repo_control_ticks": "0x200000e8",
+    "g_repo_self_test": "0x200000ec",
+    "g_tune_recorder_fault": "0x20000188",
+    "g_tune_recorder_max_cycles": "0x2000018c",
+    "g_tune_result": "0x20000190",
+    "g_tune_reason": "0x20000194",
+    "g_tune_state": "0x20000198",
+    "g_tune_saturated": "0x2000019c",
+    "g_tune_voltage": "0x200001a0",
+    "g_tune_cross_current": "0x200001a4",
+    "g_tune_measured": "0x200001a8",
+    "g_tune_reference": "0x200001ac",
+    "g_tune_stop_seq": "0x200001b0",
+    "g_tune_start_seq": "0x200001b4",
+    "g_tune_apply_seq": "0x200001b8",
+    "g_tune_axis": "0x200001bc",
+    "____recorder": "0x200001c0"
+  }
+}

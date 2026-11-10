@@ -1,0 +1,14 @@
+{
+  "g_repo_self_test": 1,
+  "g_tune_state": 0,
+  "g_tune_reason": 9,
+  "g_tune_result": 0,
+  "g_tune_recorder_fault": 0,
+  "g_tune_recorder_max_cycles": 545,
+  "g_repo_irq_max_cycles": 2058,
+  "g_repo_control_ticks": 4421547,
+  "g_tune_ki": 1128792064,
+  "g_tune_apply_seq": 6,
+  "g_tune_start_seq": 6,
+  "g_tune_stop_seq": 1
+}

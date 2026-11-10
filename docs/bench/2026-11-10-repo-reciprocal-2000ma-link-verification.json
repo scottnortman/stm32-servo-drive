@@ -1,0 +1,63 @@
+{
+  "HEX_SHA256": "02DCC6FAA1159B10B0C0690CC64AB893D2B1FA7843177B8E32C36806BD555A0A",
+  "old_HEX_images_unchanged": true,
+  "unchanged_core_sources": [
+    "src/pwm.c",
+    "src/loops.c",
+    "src/current_feedback.c",
+    "src/control.c",
+    "src/sysid/foc_sysid.c",
+    "Include/config.h",
+    "Include/board_f411.h"
+  ],
+  "ADC_vector": "0x8000569",
+  "call_chain": {
+    "repo_ADC_IRQHandler": "ADC_IRQHandler",
+    "TIM1_UP_TIM10_IRQHandler": "repo_reciprocate_step",
+    "repo_reciprocate_step": "open_loop_step",
+    "open_loop_step": "pwm_apply_dq"
+  },
+  "profile": {
+    "phase_current_reference_A": 2.0,
+    "phase_voltage_ceiling_V": 1.3,
+    "filtered_trip_A": 2.8,
+    "raw_trip_A": 4.5,
+    "ADC_sample_cycles": 56,
+    "supply_V": 12,
+    "supply_current_limit_A": 0.5
+  },
+  "geometry": {
+    "max_phase_CCR": 1519,
+    "next_edge_us": 34.79,
+    "later_trigger_us": 25.49,
+    "conversion_us": 8.16,
+    "margin_us": 1.14,
+    "raw_trip_counts": 1563
+  },
+  "symbols": {
+    "g_repo_self_test": "0x200000bc",
+    "g_repo_control_ticks": "0x200000b8",
+    "g_repo_half_moves": "0x2000006c",
+    "g_repo_command_mech_mdeg": "0x20000068",
+    "g_repo_fault_irq_seen": "0x200000ac"
+  },
+  "flash": "PROGRAMMED_VERIFIED_RESET",
+  "zero_output_trajectory_boot_check": true,
+  "boot_checks": {
+    "boot_self_test_pass": true,
+    "software_fault_irq_seen_once": true,
+    "control_ticks_zero": true,
+    "motion_counters_zero": true,
+    "ENABLE_LOW": true,
+    "INLs_LOW": true,
+    "TIM_MOE_LOW": true,
+    "PA4_analog": true,
+    "ADC_56_cycles": true,
+    "PWM_ARR_2499": true,
+    "ADC_trigger_CCR4_2449": true,
+    "ADC_prescale_div4": true,
+    "FPU_enabled": true,
+    "fault_status_clear": true
+  },
+  "startup_fix": "REPO_RECIPROCAL reset assembly enables CP10/CP11 before C prologues; initial NOCP at main vpush resolved; all other profiles unchanged."
+}

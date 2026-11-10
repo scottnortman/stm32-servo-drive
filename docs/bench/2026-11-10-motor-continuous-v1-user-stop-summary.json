@@ -1,0 +1,76 @@
+{
+  "source": "User-provided stop log, November 10, 2026; final complete run after last startup banner",
+  "image": "drv8353-motor-continuous v1,350mA,Hi-Z SPI",
+  "motion_result": "USER REPORT: shaft slightly oscillated; no continuous rotation",
+  "run_ms": 2891733,
+  "field_advances": 11565,
+  "aligned": 1,
+  "sector_at_stop": 3,
+  "stop_reason": 1,
+  "stop_reason_name": "USER",
+  "nFAULT_at_stop": 1,
+  "motor_failure": 0,
+  "sync_failure": 0,
+  "bus_failure": 0,
+  "adc_sequences": 57835275,
+  "bus_last_mV": 11740,
+  "vdda_mV": 3309,
+  "max_irq_CPUticks": 2397,
+  "adc_stop_raw": [
+    1925,
+    2139,
+    2025
+  ],
+  "adc_stop_nominal_mA": [
+    -364,
+    306,
+    -4
+  ],
+  "adc_stop_CCR": [
+    600,
+    650,
+    625
+  ],
+  "final_filtered_mA": {
+    "A->B": [
+      322,
+      -347,
+      -3
+    ],
+    "A->C": [
+      324,
+      4,
+      -353
+    ],
+    "B->C": [
+      8,
+      315,
+      -346
+    ],
+    "B->A": [
+      -351,
+      315,
+      2
+    ],
+    "C->A": [
+      -352,
+      4,
+      306
+    ],
+    "C->B": [
+      2,
+      -354,
+      318
+    ]
+  },
+  "final_pair_samples": {
+    "A->B": 5000,
+    "A->C": 5000,
+    "B->C": 5000,
+    "B->A": 4659,
+    "C->A": 5000,
+    "C->B": 5000
+  },
+  "interpretation": "Pair signs and field progression supported by retained data. Actual rotor following failed. Torque margin and transient trajectory are not established by the tail frames.",
+  "leading_fragments": "Earlier incomplete/zero-run/reset banners excluded; no cause assigned to those resets."
+}

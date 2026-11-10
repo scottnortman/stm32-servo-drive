@@ -1,0 +1,49 @@
+{
+  "HEX_SHA256": "9275845060B8FC061B4B8F4D7DFEC533ED96EBAA1B2F4367D6D6A21FD8F1DF37",
+  "profile": {
+    "phase_target_A": 6.25,
+    "phase_Vmax": 4,
+    "filtered_trip_A": 7.5,
+    "raw_trip_A": 8,
+    "CSA_gain": 20,
+    "ADC_sample_cycles": 15,
+    "ADC_trigger_CCR4": 2489,
+    "supply_V": 12,
+    "supply_limit_A": 3.5,
+    "leg_seconds": 5
+  },
+  "max_phase_CCR": 2081,
+  "next_phase_edge_us": 29.17,
+  "latest_trigger_us": 25.09,
+  "sequence_us": 3.24,
+  "latency_allowance_us": 0.13,
+  "quiet_margin_us": 0.7100000000000016,
+  "settle_fraction_model": 2.4713462848724136e-05,
+  "symbols": {
+    "g_repo_self_test": "0x200000c0",
+    "g_repo_control_ticks": "0x200000bc",
+    "g_repo_half_moves": "0x2000006c",
+    "g_repo_command_mech_mdeg": "0x20000068",
+    "g_repo_fault_irq_seen": "0x200000b0",
+    "g_repo_csa_control": "0x20000094",
+    "g_repo_phase_amps": "0x20000098",
+    "g_repo_voltage": "0x200000a4"
+  },
+  "call_chain_vector_early_FPU_verified": true,
+  "prior_image_unchanged": true,
+  "original_core_unchanged": true,
+  "v4_configuration_fix_retained": true,
+  "flash": "PROGRAMMED_VERIFIED_RESET",
+  "boot_checks": {
+    "selftest_PASS": true,
+    "fault_IRQ_selftest_once": true,
+    "motion_counters_zero": true,
+    "ENABLE_LOW": true,
+    "INLs_LOW": true,
+    "MOE_LOW": true,
+    "ADC15cycles": true,
+    "CCR4_2489": true,
+    "core_faults_clear": true,
+    "interrupts_enabled": true
+  }
+}

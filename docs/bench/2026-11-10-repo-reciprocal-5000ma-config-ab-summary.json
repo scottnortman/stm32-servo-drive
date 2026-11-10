@@ -1,0 +1,36 @@
+{
+  "original_configure_passed_all": true,
+  "old_extra_precheck_failed": 8,
+  "old_precheck_values": [
+    "0x2c2",
+    "0x2c2",
+    "0x2c2",
+    "0x2c2",
+    "0x2c2",
+    "0x2c2",
+    "0x2c2",
+    "0x2c2"
+  ],
+  "fixed_sequence_passed": 8,
+  "new_gain_double_reads": [
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283",
+    "0x283"
+  ],
+  "outputs_disabled_before_during_and_after": true,
+  "motor_energized": false,
+  "underlying_first_read_LSB_anomaly_not_fully_explained": true
+}

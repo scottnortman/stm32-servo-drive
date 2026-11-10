@@ -17,13 +17,19 @@ endif()
 # Parent of bin/ — also the root of the target sysroot (arm-none-eabi/lib/...)
 get_filename_component(ARM_TOOLCHAIN_ROOT "${ARM_TOOLCHAIN_BIN_DIR}/.." ABSOLUTE)
 
-# Compilers
-set(CMAKE_C_COMPILER   ${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-gcc)
-set(CMAKE_ASM_COMPILER ${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-gcc)
+# Resolve executable names explicitly. CMake does not add .exe when an
+# absolute compiler path is supplied from a toolchain file on Windows.
+find_program(ARM_GCC NAMES arm-none-eabi-gcc arm-none-eabi-gcc.exe
+    PATHS "${ARM_TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH REQUIRED)
+find_program(ARM_OBJCOPY NAMES arm-none-eabi-objcopy arm-none-eabi-objcopy.exe
+    PATHS "${ARM_TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH REQUIRED)
+find_program(ARM_SIZE NAMES arm-none-eabi-size arm-none-eabi-size.exe
+    PATHS "${ARM_TOOLCHAIN_BIN_DIR}" NO_DEFAULT_PATH REQUIRED)
 
-# Binutils
-set(CMAKE_OBJCOPY ${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-objcopy)
-set(CMAKE_SIZE    ${ARM_TOOLCHAIN_BIN_DIR}/arm-none-eabi-size)
+set(CMAKE_C_COMPILER   "${ARM_GCC}")
+set(CMAKE_ASM_COMPILER "${ARM_GCC}")
+set(CMAKE_OBJCOPY      "${ARM_OBJCOPY}")
+set(CMAKE_SIZE         "${ARM_SIZE}")
 
 # --- CRITICAL: prevent macOS host flags from being injected ---
 set(CMAKE_C_COMPILER_WORKS 1)

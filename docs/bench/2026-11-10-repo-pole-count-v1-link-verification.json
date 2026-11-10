@@ -1,0 +1,33 @@
+{
+  "HEX_SHA256": "5F1E276EE439F05EBD0055913F3954E25012BE119436913DE7C2292C832234A3",
+  "original_repo_motor_v2_HEX_unchanged": true,
+  "ADC_vector": "0x800052d",
+  "call_chain": {
+    "repo_ADC_IRQHandler": "ADC_IRQHandler",
+    "TIM1_UP_TIM10_IRQHandler": "repo_pole_count_step",
+    "repo_pole_count_step": "open_loop_step",
+    "open_loop_step": "pwm_apply_dq"
+  },
+  "unchanged_core_sources": [
+    "src/pwm.c",
+    "src/loops.c",
+    "src/current_feedback.c",
+    "src/control.c",
+    "Include/config.h",
+    "Include/board_f411.h"
+  ],
+  "symbols": {
+    "g_repo_self_test": "0x200000a8",
+    "g_repo_timer_events": "0x2000009c",
+    "g_repo_fault_irq_seen": "0x20000098",
+    "g_repo_electrical_turns": "0x20000068"
+  },
+  "flash": "VERIFIED/reset",
+  "boot_selftest": 1,
+  "software_fault_IRQ_count": 1,
+  "electrical_turns_before_USER": 0,
+  "control_ticks_before_USER": 0,
+  "PA4_analog": true,
+  "ENABLE_INLs_MOE": "LOW",
+  "hardware_pole_count_result": "PENDING"
+}

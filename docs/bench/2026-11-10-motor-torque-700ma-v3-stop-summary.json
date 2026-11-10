@@ -1,0 +1,28 @@
+{
+  "source": "User final700mA v3 stop log",
+  "motion_result": "not working; no driven pulse in this log",
+  "stop_reason": 9,
+  "sync_failure": 2,
+  "motor_failure": 0,
+  "bus_failure": 0,
+  "samples": 0,
+  "run_ms": 0,
+  "pulse_was_on": 0,
+  "last_CNT": 775,
+  "last_period_CPUticks": 5000,
+  "CCR": [
+    625,
+    625,
+    625
+  ],
+  "nominal_mA_snapshot": [
+    -34,
+    -12,
+    -3
+  ],
+  "nFAULT_at_stop": 1,
+  "VBUS_mV": 11823,
+  "VDDA_mV": 3318,
+  "conclusion": "Old custom phase predicate rejected exact775 boundary before motor arming. No evidence700mA drive ran.",
+  "next_direction": "User explicitly demanded original working repo path; custom boundary patch abandoned, not flashed."
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "axis": "D",
+    "kp": 0.2,
+    "ki": 50,
+    "sample_rate_hz": 20000,
+    "rise_10_90_ms": 34.49999999999999,
+    "final_10ms_mean_A": 0.49609873500000007,
+    "raw_peak_A": 0.547431,
+    "averaged_peak_A": 0.5016671904761906,
+    "final_cross_mean_A": 0.00046065500000000035,
+    "saturation_samples": 0
+  },
+  {
+    "axis": "D",
+    "kp": 0.2,
+    "ki": 200,
+    "sample_rate_hz": 20000,
+    "rise_10_90_ms": 10.15,
+    "final_10ms_mean_A": 0.5005874100000001,
+    "raw_peak_A": 0.553186,
+    "averaged_peak_A": 0.5337293809523811,
+    "final_cross_mean_A": -4.514999999999658e-06,
+    "saturation_samples": 0
+  },
+  {
+    "axis": "Q",
+    "kp": 0.2,
+    "ki": 50,
+    "sample_rate_hz": 20000,
+    "rise_10_90_ms": 30.9,
+    "final_10ms_mean_A": 0.496493755,
+    "raw_peak_A": 0.539537,
+    "averaged_peak_A": 0.5075774285714285,
+    "final_cross_mean_A": -0.0007368449999999999,
+    "saturation_samples": 0
+  },
+  {
+    "axis": "Q",
+    "kp": 0.2,
+    "ki": 200,
+    "sample_rate_hz": 20000,
+    "rise_10_90_ms": 8.15,
+    "final_10ms_mean_A": 0.49956706000000006,
+    "raw_peak_A": 0.556149,
+    "averaged_peak_A": 0.5131149523809524,
+    "final_cross_mean_A": 0.0007882349999999999,
+    "saturation_samples": 0
+  }
+]

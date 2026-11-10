@@ -1,0 +1,11 @@
+{
+  "selftest_PASS": true,
+  "fault_IRQ_selftest_once": true,
+  "motion_counters_zero": true,
+  "ENABLE_LOW": true,
+  "INLs_LOW": true,
+  "MOE_LOW": true,
+  "ADC28cycles": true,
+  "core_faults_clear": true,
+  "interrupts_enabled": true
+}

@@ -59,7 +59,9 @@
 // =============================================================================
 
 #define SHUNT_R          0.007f
+#ifndef SHUNT_GAIN
 #define SHUNT_GAIN       40.0f
+#endif
 #define VREF             3.3f
 #define ADC_COUNTS       4096.0f
 #define ADC_ZERO         2048.0f

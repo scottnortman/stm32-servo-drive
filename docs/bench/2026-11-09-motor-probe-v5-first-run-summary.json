@@ -1,0 +1,84 @@
+{
+    "result":  "PASS: first bounded nominal-current three-pair run",
+    "image_sha256":  "C9D469614FFE26BFF756EA52AE4AB4BE0B9C2AEAF751B9991F9386E4B716C654",
+    "source_log_sha256":  "ECF963FCE339B9C7B74A55AAB3F2B7976A08E83C45EB9D3C15FDBCAE9794ACE5",
+    "target_nominal_mA":  100,
+    "pulse_completed_samples_each":  4999,
+    "pairs":  [
+                  {
+                      "pair":  "A-\u003eB",
+                      "filtered_mA_A":  92,
+                      "filtered_mA_B":  -97,
+                      "filtered_mA_C":  -2,
+                      "last_diff_ccr":  16,
+                      "nominal_peak_sample_mA":  153,
+                      "target_samples":  4549
+                  },
+                  {
+                      "pair":  "B-\u003eC",
+                      "filtered_mA_A":  1,
+                      "filtered_mA_B":  85,
+                      "filtered_mA_C":  -101,
+                      "last_diff_ccr":  14,
+                      "nominal_peak_sample_mA":  168,
+                      "target_samples":  4567
+                  },
+                  {
+                      "pair":  "C-\u003eA",
+                      "filtered_mA_A":  -101,
+                      "filtered_mA_B":  6,
+                      "filtered_mA_C":  80,
+                      "last_diff_ccr":  16,
+                      "nominal_peak_sample_mA":  158,
+                      "target_samples":  4567
+                  }
+              ],
+    "retained_tail_statistics":  [
+                                     {
+                                         "pair":  "A-\u003eB",
+                                         "retained_frames":  32,
+                                         "first_us":  218000,
+                                         "last_us":  249000,
+                                         "mean_filtered_mA_A":  93.875,
+                                         "min_filtered_mA_A":  87,
+                                         "max_filtered_mA_A":  103,
+                                         "mean_filtered_mA_B":  -100.531,
+                                         "min_filtered_mA_B":  -108,
+                                         "max_filtered_mA_B":  -94,
+                                         "mean_filtered_mA_C":  -1.438,
+                                         "min_filtered_mA_C":  -8,
+                                         "max_filtered_mA_C":  4
+                                     },
+                                     {
+                                         "pair":  "B-\u003eC",
+                                         "retained_frames":  32,
+                                         "first_us":  218000,
+                                         "last_us":  249000,
+                                         "mean_filtered_mA_A":  3.469,
+                                         "min_filtered_mA_A":  -1,
+                                         "max_filtered_mA_A":  9,
+                                         "mean_filtered_mA_B":  86.469,
+                                         "min_filtered_mA_B":  81,
+                                         "max_filtered_mA_B":  93,
+                                         "mean_filtered_mA_C":  -100.969,
+                                         "min_filtered_mA_C":  -109,
+                                         "max_filtered_mA_C":  -94
+                                     },
+                                     {
+                                         "pair":  "C-\u003eA",
+                                         "retained_frames":  32,
+                                         "first_us":  218000,
+                                         "last_us":  249000,
+                                         "mean_filtered_mA_A":  -99.844,
+                                         "min_filtered_mA_A":  -106,
+                                         "max_filtered_mA_A":  -93,
+                                         "mean_filtered_mA_B":  5.781,
+                                         "min_filtered_mA_B":  2,
+                                         "max_filtered_mA_B":  11,
+                                         "mean_filtered_mA_C":  75.312,
+                                         "min_filtered_mA_C":  66,
+                                         "max_filtered_mA_C":  85
+                                     }
+                                 ],
+    "qualification":  "Shunt-derived nominal current; no independent current calibration. One successful quiet-SPI run supports but does not prove interference hypothesis."
+}

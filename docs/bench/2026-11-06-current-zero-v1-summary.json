@@ -1,0 +1,79 @@
+{
+  "reports": 30,
+  "zero_offsets": {
+    "A": {
+      "zero_raw": 2056.988,
+      "min": 2043,
+      "max": 2075
+    },
+    "B": {
+      "zero_raw": 2037.805,
+      "min": 2011,
+      "max": 2059
+    },
+    "C": {
+      "zero_raw": 2030.824,
+      "min": 2015,
+      "max": 2040
+    }
+  },
+  "ISENA": {
+    "nominal_mean_mA_range": [
+      -7,
+      9
+    ],
+    "average_nominal_mean_mA": 0.7333333333333333,
+    "raw_mean_range": [
+      2054,
+      2060
+    ],
+    "individual_raw_extremes": [
+      2026,
+      2087
+    ]
+  },
+  "ISENB": {
+    "nominal_mean_mA_range": [
+      -9,
+      7
+    ],
+    "average_nominal_mean_mA": -0.9333333333333333,
+    "raw_mean_range": [
+      2035,
+      2040
+    ],
+    "individual_raw_extremes": [
+      2003,
+      2062
+    ]
+  },
+  "ISENC": {
+    "nominal_mean_mA_range": [
+      -7,
+      5
+    ],
+    "average_nominal_mean_mA": -2.2666666666666666,
+    "raw_mean_range": [
+      2028,
+      2033
+    ],
+    "individual_raw_extremes": [
+      2005,
+      2055
+    ]
+  },
+  "VREFINT_VDDA_mV_est": {
+    "range": [
+      3315,
+      3316
+    ],
+    "average": 3315.3
+  },
+  "VBUS_mV_est": {
+    "range": [
+      11955,
+      12024
+    ],
+    "average": 11977.9
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "steps": [
+    {
+      "axis": "D",
+      "kp": 0.2,
+      "ki": 200,
+      "rise_10_90_ms": 9.950000000000001,
+      "crossing_average_us": 150,
+      "sample_us": 50,
+      "final_10ms_mean_A": 0.5005874100000001,
+      "raw_peak_A": 0.553186,
+      "first_5ms_three_sample_peak_A": 0.34026033333333333,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "D",
+      "kp": 0.8,
+      "ki": 2000,
+      "rise_10_90_ms": 0.400000000000001,
+      "crossing_average_us": 150,
+      "sample_us": 50,
+      "final_10ms_mean_A": 0.49971347999999993,
+      "raw_peak_A": 0.550758,
+      "first_5ms_three_sample_peak_A": 0.5104749999999999,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "Q",
+      "kp": 0.2,
+      "ki": 200,
+      "rise_10_90_ms": 7.15,
+      "crossing_average_us": 150,
+      "sample_us": 50,
+      "final_10ms_mean_A": 0.49956706000000006,
+      "raw_peak_A": 0.556149,
+      "first_5ms_three_sample_peak_A": 0.3800566666666666,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "Q",
+      "kp": 0.8,
+      "ki": 2000,
+      "rise_10_90_ms": 0.35000000000000137,
+      "crossing_average_us": 150,
+      "sample_us": 50,
+      "final_10ms_mean_A": 0.49982906,
+      "raw_peak_A": 0.541211,
+      "first_5ms_three_sample_peak_A": 0.5201683333333333,
+      "saturation_samples": 0
+    }
+  ],
+  "tones": [
+    {
+      "axis": "D",
+      "f_Hz": 400,
+      "H_mag": 0.9055036742103351,
+      "H_dB": -0.862195662690637,
+      "H_phase_deg": -48.67902452637159,
+      "L_mag": 1.146141961986892,
+      "L_phase_deg": -108.08311412065723,
+      "cross_ratio": 0.041006641147932954,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "D",
+      "f_Hz": 600,
+      "H_mag": 0.8492023729214846,
+      "H_dB": -1.4197760191535855,
+      "H_phase_deg": -73.15370748211724,
+      "L_mag": 0.7660307082083934,
+      "L_phase_deg": -120.3054215474898,
+      "cross_ratio": 0.07725534889368268,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "D",
+      "f_Hz": 800,
+      "H_mag": 0.7807989945484805,
+      "H_dB": -2.1492150918254453,
+      "H_phase_deg": -96.10715563865709,
+      "L_mag": 0.5859281031134493,
+      "L_phase_deg": -131.74097189671528,
+      "cross_ratio": 0.1270507563392497,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "Q",
+      "f_Hz": 400,
+      "H_mag": 0.9406822271099501,
+      "H_dB": -0.5311412258262234,
+      "H_phase_deg": -44.670450128523406,
+      "L_mag": 1.2719730638838582,
+      "L_phase_deg": -108.08049267095817,
+      "cross_ratio": 0.028710150309141393,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "Q",
+      "f_Hz": 600,
+      "H_mag": 0.903625896908429,
+      "H_dB": -0.8802266235756355,
+      "H_phase_deg": -65.25579105713635,
+      "L_mag": 0.8776450756167534,
+      "L_phase_deg": -118.10648281999586,
+      "cross_ratio": 0.04218799730064805,
+      "saturation_samples": 0
+    },
+    {
+      "axis": "Q",
+      "f_Hz": 800,
+      "H_mag": 0.8557550640078656,
+      "H_dB": -1.3530104441133595,
+      "H_phase_deg": -85.35499522295162,
+      "L_mag": 0.6778663622105945,
+      "L_phase_deg": -127.85886187162136,
+      "cross_ratio": 0.08487402325275242,
+      "saturation_samples": 0
+    }
+  ],
+  "margins": [
+    {
+      "axis": "D",
+      "interpolation_bracket_Hz": [
+        400,
+        600
+      ],
+      "estimated_crossover_Hz": 458.84969440743953,
+      "estimated_phase_margin_deg": 67.77938742223945
+    },
+    {
+      "axis": "Q",
+      "interpolation_bracket_Hz": [
+        400,
+        600
+      ],
+      "estimated_crossover_Hz": 520.2575097022857,
+      "estimated_phase_margin_deg": 65.41974883040656
+    }
+  ],
+  "limits": "0.5A test,0.75V ceiling; sparse SISO tone estimates,not full robustness certification; exact -3dB crossing not measured above800Hz"
+}

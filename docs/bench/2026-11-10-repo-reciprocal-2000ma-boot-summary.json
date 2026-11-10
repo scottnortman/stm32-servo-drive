@@ -1,0 +1,39 @@
+{
+  "hex_sha256": "02DCC6FAA1159B10B0C0690CC64AB893D2B1FA7843177B8E32C36806BD555A0A",
+  "checks": {
+    "boot_self_test_pass": true,
+    "software_fault_irq_seen_once": true,
+    "control_ticks_zero": true,
+    "motion_counters_zero": true,
+    "ENABLE_LOW": true,
+    "INLs_LOW": true,
+    "TIM_MOE_LOW": true,
+    "PA4_analog": true,
+    "ADC_56_cycles": true,
+    "PWM_ARR_2499": true,
+    "ADC_trigger_CCR4_2449": true,
+    "ADC_prescale_div4": true,
+    "FPU_enabled": true,
+    "fault_status_clear": true
+  },
+  "memory": {
+    "0x20000068": "0x0",
+    "0x2000006c": "0x0",
+    "0x200000ac": "0x1",
+    "0x200000b0": "0x2a5ad",
+    "0x200000b4": "0x0",
+    "0x200000b8": "0x0",
+    "0x200000bc": "0x1",
+    "0x40020000": "0xa82a03a0",
+    "0x40020414": "0x0",
+    "0x40020814": "0x0",
+    "0x40010044": "0x0",
+    "0x4001200c": "0xe000db",
+    "0x4001002c": "0x9c3",
+    "0x40010040": "0x991",
+    "0x40012304": "0x810000",
+    "0xe000ed88": "0xf00000",
+    "0xe000ed28": "0x0",
+    "0xe000ed2c": "0x0"
+  }
+}

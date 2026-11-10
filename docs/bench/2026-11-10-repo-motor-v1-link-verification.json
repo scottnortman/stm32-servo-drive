@@ -1,0 +1,35 @@
+{
+  "HEX_SHA256": "E2E18E21786BCEEA3F70F70CAD550087D948BB3F607A6AFDC1C5736FBA51C38E",
+  "ADC_vector": "0x8000519",
+  "ADC_adapter": "0x8000518",
+  "original_ADC_ISR": "0x8000f84",
+  "selftest_address": "0x200000a4",
+  "timer_count_address": "0x20000098",
+  "fault_irq_count_address": "0x20000094",
+  "call_chain_verified": {
+    "repo_ADC_IRQHandler": "ADC_IRQHandler",
+    "TIM1_UP_TIM10_IRQHandler": "open_loop_step",
+    "open_loop_step": "pwm_apply_dq",
+    "pwm_apply_dq": "pwm_apply_phase_volts"
+  },
+  "unchanged_reference_sources": [
+    "src/pwm.c",
+    "src/loops.c",
+    "src/current_feedback.c",
+    "src/control.c",
+    "Include/config.h",
+    "Include/board_f411.h"
+  ],
+  "no_parallel_controller_symbols": true,
+  "all_prior_diagnostic_HEX_unchanged": true,
+  "physical_run": "PENDING: waiting for USER with EVM off",
+  "flash_verified": true,
+  "boot_selftest": 1,
+  "software_fault_IRQ_count": 1,
+  "ENABLE_LOW": true,
+  "INLs_LOW": true,
+  "MOE_LOW": true,
+  "original_ADC_sample_count": 948806,
+  "original_TIM1_event_count": 948794,
+  "control_ticks_before_USER": 0
+}

@@ -35,3 +35,12 @@ compile_commands.json
 Thumbs.db
 #=== Manual
 docs/*.pdf
+.venv-tuning/
+outputs/tuning/
+
+# Local agent state, generated captures and Python caches
+.gstack/
+CONTEXT.md
+outputs/
+__pycache__/
+*.pyc

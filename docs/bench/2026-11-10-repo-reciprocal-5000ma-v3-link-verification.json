@@ -1,0 +1,61 @@
+{
+  "HEX_SHA256": "1AC5B931C3EE8C5C16FBF693AB3B330D7D44776B1958CA4B3FEC8C76634D23A3",
+  "profile": {
+    "phase_current_A": 5,
+    "phase_Vmax": 3.2,
+    "filtered_trip_A": 6.5,
+    "raw_trip_A": 8,
+    "CSA_gain": 20,
+    "R6_expected": "0x283",
+    "ADC_sample_cycles": 28,
+    "supply_V": 12,
+    "supply_limit_A": 2.5,
+    "leg_seconds": 20
+  },
+  "symbols": {
+    "g_repo_self_test": "0x200000c0",
+    "g_repo_control_ticks": "0x200000bc",
+    "g_repo_half_moves": "0x2000006c",
+    "g_repo_command_mech_mdeg": "0x20000068",
+    "g_repo_fault_irq_seen": "0x200000b0",
+    "g_repo_csa_control": "0x20000094",
+    "g_repo_phase_amps": "0x20000098",
+    "g_repo_voltage": "0x200000a4"
+  },
+  "ADC_vector": "0x8000569",
+  "amps_per_count": 0.005754743303571428,
+  "compiled_gain20_conversion_literal_verified": true,
+  "default_gain40_unchanged": true,
+  "max_phase_CCR": 1915,
+  "next_edge_us": 30.83,
+  "sequence_us": 4.8,
+  "latency_allowance_us": 0.13,
+  "ADC_completion_us": 30.419999999999998,
+  "quiet_margin_us": 0.41000000000000003,
+  "raw_trip_counts": 1390,
+  "ADC_thresholds_worst_accepted_offsets": [
+    410,
+    3690
+  ],
+  "input_charge_share_settle_fraction_model": 3.678632862986283e-07,
+  "early_FPU_enabled": true,
+  "call_chain_verified": true,
+  "original_core_diff_free_except_config_gain_override_guard": true,
+  "prior_images_unchanged": true,
+  "flash": "PROGRAMMED_VERIFIED_RESET",
+  "boot_checks": {
+    "selftest_PASS": true,
+    "fault_IRQ_once": true,
+    "counters_zero": true,
+    "CSA_setup_pending_USER": true,
+    "ENABLE_LOW": true,
+    "INLs_LOW": true,
+    "MOE_LOW": true,
+    "PA4_analog": true,
+    "ADC_28cycles": true,
+    "ARR2499_CCR42449": true,
+    "ADC_div4": true,
+    "FPU_enabled": true,
+    "fault_status_clear": true
+  }
+}

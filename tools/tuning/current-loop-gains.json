@@ -1,0 +1,13 @@
+{
+  "format": "repo-current-loop-gains-v1",
+  "date": "2026-11-10",
+  "kp_V_per_A": 0.8,
+  "ki_V_per_A_s": 2000,
+  "scope": "both stationary axes,0.5A step and400/600/800Hz0..0.5A tones",
+  "voltage_vector_limit_V": 0.75,
+  "sample_rate_Hz": 20000,
+  "persistence": "RAM only; firmware reset defaults Kp0.2/Ki50. Profile records tested gains; loading project does not auto-apply them.",
+  "firmware_sha256": "1edbf558f002cb3dadb908f5f7b9c5e12a5c9ea3b3e48ab1d91432f08f5d591c",
+  "results": "docs/bench/2026-11-10-pi-tuning-results.json",
+  "bridge_end_state": "disarmed,ENABLE/INLs/MOE low"
+}

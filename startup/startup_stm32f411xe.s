@@ -60,6 +60,16 @@ defined in linker script */
 Reset_Handler:  
   ldr   sp, =_estack    		 /* set stack pointer */
 
+#ifdef REPO_RECIPROCAL
+/* Enable CP10/CP11 before any C function prologue can save FP registers. */
+  ldr r0, =0xE000ED88
+  ldr r1, [r0]
+  orr r1, r1, #0x00F00000
+  str r1, [r0]
+  dsb
+  isb
+#endif
+
 /* Call the clock system initialization function.*/
   bl  SystemInit   
 
@@ -160,7 +170,11 @@ g_pfnVectors:
   .word     DMA1_Stream4_IRQHandler           /* DMA1 Stream 4                */                   
   .word     DMA1_Stream5_IRQHandler           /* DMA1 Stream 5                */                   
   .word     DMA1_Stream6_IRQHandler           /* DMA1 Stream 6                */                   
-  .word     ADC_IRQHandler                    /* ADC1, ADC2 and ADC3s         */                   
+#ifdef REPO_MOTOR_BENCH
+  .word     repo_ADC_IRQHandler
+#else
+  .word     ADC_IRQHandler
+#endif                    /* ADC1, ADC2 and ADC3s         */
   .word     0               				  /* Reserved                      */                         
   .word     0              					  /* Reserved                     */                          
   .word     0                                 /* Reserved                     */                          
