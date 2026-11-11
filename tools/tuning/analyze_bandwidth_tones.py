@@ -107,7 +107,8 @@ def main():
         frequencies = [r["frequency_Hz"] for r in subset]
         plots[0].semilogx(frequencies, [r["gain_dB"] for r in subset],
                           "o-", color=color, label=axis)
-        plots[1].semilogx(frequencies, [r["phase_deg"] for r in subset],
+        phase = np.rad2deg(np.unwrap(np.deg2rad([r["phase_deg"] for r in subset])))
+        plots[1].semilogx(frequencies, phase,
                           "o-", color=color, label=axis)
         if "target_dB" in bandwidth[axis]:
             plots[0].axhline(bandwidth[axis]["target_dB"], color=color,

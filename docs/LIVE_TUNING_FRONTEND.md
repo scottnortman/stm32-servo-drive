@@ -1,5 +1,37 @@
 # MCUViewer FREE current-loop tuning
 
+## Current 24 V checkpoint (2026-11-10)
+
+The dedicated 24 V image is flashed; powered low-current steps and tones are
+complete. Use `tools/tuning/current-loop-free-24v.mcuv`, matching
+`outputs/checkpoints/current-bw-24v-recovery-2026-11-10/repo-current-tuning-24v.elf`.
+Kp1.0/Ki2500 are saved in sector 7 and reload after reset. The 0.5 A step rise
+was D0.40/Q0.25 ms; unsaturated raw 20 kHz tones bracket closed-loop -3 dB
+bandwidth at D800..1200/Q1200..1600 Hz, interpolated D1.048/Q1.226 kHz.
+Evidence and limits: `bench/2026-11-10-current-bandwidth-24v-recovery.json`.
+
+The 24 V image permits stationary tests only: 0.5 A reference, 0.1 V voltage
+steps, 2 V vector ceiling, 2 kHz tones, 1/1.5 A filtered/raw phase trips and
+22..26 V arming window. Interface version: 0x10005. Both images share the NV
+journal; restore archived 0.8/2000 before using the older 12 V motion profile.
+New settings are in `current-loop-24v-gains.json`; the original gain file is
+preserved as 12 V history.
+
+Final state: EVM confirmed OFF, disarmed, ENABLE/INLs/MOE LOW; viewer STOP on
+live controls. SWD failed after the completed tones and recovered only after
+Nucleo USB was power-cycled with EVM OFF. Cause is unresolved; pre-reset timing
+and CPU registers were unavailable. Disabled-output boot and NV reload passed.
+Fresh OFF confirmation is required before any later flash/reset.
+
+Reproduce bandwidth without hardware (numpy/matplotlib required):
+
+```sh
+python -m zipfile -e docs/bench/current-tuning/24v-recovery-2026-11-10.zip outputs/tuning/24v-recovery
+python tools/tuning/analyze_bandwidth_tones.py outputs/tuning/24v-recovery --output outputs/tuning/24v-bandwidth.json --plot outputs/tuning/24v-bandwidth.png
+```
+
+The sections below preserve earlier 12 V sessions unless explicitly stated.
+
 Integration note: the first tuning captures below preceded the upstream merge.
 The integrated image has since passed powered steps and 3 A/5 A rotating-current
 trials. See

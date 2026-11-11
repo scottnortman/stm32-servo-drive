@@ -1,0 +1,37 @@
+{
+  "format": "repo-current-loop-gains-v1",
+  "date": "2026-11-10",
+  "supply_V": 24,
+  "kp_V_per_A": 1,
+  "ki_V_per_A_s": 2500,
+  "scope": "Both stationary electrical axes; 0.5 A steps and 20..2000 Hz tones spanning 0..0.5 A",
+  "step_voltage_ceiling_V": 0.75,
+  "tone_voltage_ceiling_V": 2,
+  "sample_rate_Hz": 20000,
+  "persistence": "Saved in shared sector 7 gain journal; reset reload of 1.0/2500 verified with EVM OFF. Restore archived 0.8/2000 before using the older 12 V motion image.",
+  "firmware_sha256": "c8c4971245faba7bb05426940c111d08adec9c54b88512eef93fe29905baa3f6",
+  "results": "docs/bench/2026-11-10-current-bandwidth-24v-recovery.json",
+  "closed_loop_bandwidth": {
+    "D": {
+      "status": "bracketed",
+      "baseline_dB": -0.19772098086939657,
+      "target_dB": -3.2080209374693966,
+      "bracket_Hz": [
+        800.0,
+        1200.0
+      ],
+      "estimate_Hz": 1048.0299304044408
+    },
+    "Q": {
+      "status": "bracketed",
+      "baseline_dB": -0.018149280378750594,
+      "target_dB": -3.0284492369787506,
+      "bracket_Hz": [
+        1200.0,
+        1600.0
+      ],
+      "estimate_Hz": 1226.494066534975
+    }
+  },
+  "bridge_end_state": "EVM OFF, disarmed, ENABLE/INLs/MOE LOW"
+}

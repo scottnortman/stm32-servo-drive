@@ -414,7 +414,12 @@ int main(void)
     uart_text("Original repo signed d/q PI,PWM,ADC. Fixed electrical frame; no rotor feedback.\r\n");
     uart_text("Default D-axis0.5A step,1s test,0.75V ceiling. Gains are starting values.\r\n");
     uart_text("USER arms at ZERO output. Apply settings then increment START in MCUViewer.\r\n");
+#ifdef REPO_TUNING_24V
+    uart_text("24V stationary tuning only:0.5A reference,0.1V voltage step,2V vector ceiling,2kHz tones.No motion.\r\n");
+    uart_text("Bounded tests auto-stop. USER/stop/fault disarms; re-arm with USER.\r\n");
+#else
     uart_text("Bounded tests auto-stop; 6A motion repeats until USER/stop/fault. Re-arm with USER.\r\n");
+#endif
 #elif defined(REPO_RECIPROCAL)
 #ifdef REPO_RECIP_QUAD_SPEED
     uart_text("1s alignment,thenonecommandedrevolutionFORWARDandBACK;5sperleg,cosineaccel/decel.\r\n");
@@ -445,7 +450,11 @@ int main(void)
     uart_text("Slow10rpm FIELD; nominal700mA amplitude limit; max550mV phase voltage.\r\n");
 #endif
 #ifdef REPO_MCUVIEWER
+#ifdef REPO_TUNING_24V
+    uart_text("1A filtered/1.5A sampled raw trips; USER20ms,nFAULT,ADC guards retained.\r\n");
+#else
     uart_text("7.5A filtered/8A sampled raw trips; USER20ms,nFAULT,ADC guards retained.\r\n");
+#endif
 #elif defined(REPO_RECIPROCAL)
 #ifdef REPO_CURRENT_6250MA
     uart_text("7.5A filtered/8A sampled raw trips. USER hold stops;nFAULT immediate;ADC15cycles.\r\n");

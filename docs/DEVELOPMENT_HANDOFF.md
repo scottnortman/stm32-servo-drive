@@ -3,6 +3,67 @@
 Last engineering state: 2026-11-10. This is a curated project handoff, not the
 full chat transcript. Verify live hardware and Git state before acting.
 
+## Latest checkpoint: 24 V retune and bandwidth complete
+
+After two PC resets, the 24 V work resumed on 2026-11-10. Fresh EVM-OFF
+confirmation was obtained in chat. The dedicated `repo-current-tuning-24v`
+image was flashed and verified, erasing sectors 0/1 only; sector 7's saved
+Kp0.8/Ki2000 record remained unchanged. HOTPLUG write could not erase;
+under-reset programming succeeded while EVM power was OFF. Disabled boot
+passed: interface0x10005, self-test1, state/reason/result0, zero reference and
+voltage, Recorder fault0/max512cycles, CFSR/HFSR0, ENABLE/INLs/MOE LOW.
+
+Exact flashed ELF/HEX are in ignored
+`outputs/checkpoints/current-bw-24v-recovery-2026-11-10`. The HEX SHA256 is
+`c8c4971245faba7bb05426940c111d08adec9c54b88512eef93fe29905baa3f6`.
+This includes the 24 V UART correction to the 24 V UART boot
+descriptions, so it differs from the earlier unflashed candidate archive.
+MCUViewer was restarted and `tools/tuning/current-loop-free-24v.mcuv` was
+generated against that exact archived ELF. Scott confirmed fixed 24 V with
+0.25 A input limit, secured unloaded motor, Halls disconnected and USER arm.
+Bus preflight read 23.714 V. Positive 0.1 V D/Q steps produced positive current
+changes of 0.113/0.141 A. Compared gains 0.2/50, 0.8/2000, 1.0/2500 and
+1.2/3000. Selected **Kp1.0/Ki2500**: 0.5 A step rise D0.40/Q0.25 ms,
+final means D0.49993/Q0.50026 A, no saturation at the 0.75 V ceiling.
+Crossing estimates use three-sample/150 us smoothing on raw 20 kHz data.
+The 1.2/3000 pair briefly saturated that ceiling and was not selected.
+
+Eighteen raw 20 kHz fixed-tone captures cover 20, 50, 100, 200, 400, 800,
+1200, 1600 and 2000 Hz on both axes, reference 0..0.5 A, 2 V vector ceiling.
+All had zero saturation. Closed-loop -3 dB interpolation gives **D1.048 kHz**
+(800..1200 Hz bracket) and **Q1.226 kHz** (1200..1600 Hz bracket), relative
+to each axis's median 20/50 Hz response. These are sparse stationary-axis
+estimates, not full MIMO, rotor-angle or high-current validation.
+
+Before a finer sweep started, SWD stopped connecting. CubeProgrammer detected
+ST-LINK but could not read the MCU core ID, even under reset. Scott held USER,
+confirmed EVM OFF and unplugged/reconnected Nucleo USB; HOTPLUG then recovered.
+Cause is unestablished. Pre-reset IRQ/Recorder maxima and CPU fault registers
+were not recovered. Each completed test returned normal armed-idle status;
+later boot checks cannot replace the missing pre-reset diagnostics.
+
+Scott explicitly authorized saving the new gains in the shared NV journal.
+With EVM OFF and outputs LOW, save returned status2; the record at 0x08060018
+and its CRC were independently checked. A software reset reloaded 1.0/2500,
+NV status1, self-test1, state/reason0, zero drive, Recorder fault0/max512cycles,
+CFSR/HFSR0 and ENABLE/INLs/MOE LOW. **Final EVM state: confirmed OFF.**
+MCUViewer is STOP on live controls in the matching 24 V project.
+The 12 V build is preserved, but its older motion guard requires restoring the
+archived 0.8/2000 NV gains before use; both images share the gain journal.
+
+Recovery validation passed: upstream23tests/42checks; both 12/24 V tuning,
+actual Recorder, NV and profile host suites under ASan/UBSan; affected 24 V,
+12 V and default application targets and the full firmware build pass. Evidence:
+`bench/2026-11-10-current-bandwidth-24v-recovery.json`. Raw data:
+`bench/current-tuning/24v-recovery-2026-11-10.zip`, with a SHA256 manifest;
+all 28 captures were checked and bandwidth reproduced after extraction.
+The persistent gain profile is `tools/tuning/current-loop-24v-gains.json`.
+Plots: ignored `outputs/tuning/24v-recovery-bandwidth.png` and
+`outputs/tuning/24v-recovery-steps.png`. Investigate the SWD interruption before
+sustained motion. This checkpoint supersedes the historical hardware state and
+saved gains in the sections below. Fresh EVM-OFF confirmation remains
+required before any later flash/reset; COM3 remains the user's console.
+
 ## Goal and user preferences
 
 Commission the NUCLEO-F411RE + DRV8353RS-EVM + GEMS GM42BLF60-240 motor, tune
@@ -222,34 +283,20 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. A dedicated 24 V GEMS current-tuning candidate is software validated and
-   archived in `outputs/checkpoints/current-bw-24v-candidate-2026-11-10`.
-   Target `repo-current-tuning-24v.elf` uses 24 V PWM normalization and a
-   22..26 V arming window while leaving the 12 V target intact. It limits
-   current reference to 0.5 A, voltage steps to 0.1 V, vector command to
-   2 V, filtered/raw phase trips to 1/1.5 A, fixed tones to 2 kHz, and
-   disables motion mode. Interface version is `0x00010005`; saved flash gains
-   remain Kp0.8/Ki2000. All firmware targets build, upstream 23/42 checks
-   pass, and 12/24 V tuning/Recorder/NV/profile host tests pass under
-   ASan/UBSan. **The 24 V image has not yet been flashed or powered.** Image
-   hashes and exact test plan are in
-   `docs/bench/2026-11-10-current-bandwidth-24v-candidate.json`.
-2. Obtain fresh EVM-power-OFF confirmation before flashing/resetting. Check
-   sector 7 persistence and disabled-output boot, then regenerate
-   `tools/tuning/current-loop-free-24v.mcuv` against the flashed ELF. User
-   sets fixed 24 V with initial 0.25 A supply input limit, secures the unloaded
-   motor with Halls disconnected, and physically arms USER at zero drive.
-   Recheck live bus voltage and guards. Run signed 0.1 V D/Q steps, then bounded
-   0.5 A D/Q steps. Retune only if their tracking/noise/saturation warrant it.
-   Capture unsaturated 20 kHz fixed tones on both axes through the closed-loop
-   -3 dB crossing; analyze with `tools/tuning/analyze_bandwidth_tones.py`.
-3. The 6 A/2.5 s trial was observed smooth and electrically tracked, but
-   reached the 4 V ceiling on some late samples. Do not infer actual rotor
-   trajectory from the commanded angle. Obtain fresh EVM-OFF confirmation
-   before any later flash or reset. The powered results belong to the
-   archived pre-UART-text image; the final image passed only disabled boot.
-4. Validate higher currents and cross coupling/angle dependence. Actual rotor
-   feedback is needed before developing and tuning velocity/position loops.
+1. The 24 V low-current retune, sparse bandwidth measurement and NV save/reload
+   are complete. Use `repo-current-tuning-24v.elf`, the matching 24 V GUI and
+   saved Kp1.0/Ki2500. Preserve the separate 12 V build and historical gain file;
+   restore 0.8/2000 in NV before using its older motion profile.
+2. Investigate the SWD/USB interruption before sustained motion. Finer crossing
+   captures around D1.05/Q1.23 kHz are optional; measured brackets already span
+   D800..1200/Q1200..1600 Hz. Fresh EVM-OFF confirmation precedes any flash/reset.
+3. Validate higher currents, cross coupling and rotor-angle dependence before
+   extending the low-current tune. The 24 V tuning image disables motion and
+   retains 0.5 A reference, 0.1 V voltage-step, 2 V vector command and 1/1.5 A
+   filtered/raw phase guards, with a 22..26 V arming window.
+4. Obtain rotor feedback before developing velocity and position loops.
+   Earlier 12 V reciprocal motion was observed smooth, but shaft travel was
+   unmeasured and some fast-run samples reached the 4 V ceiling.
 
 ## Local recovery notes
 
@@ -266,5 +313,11 @@ worked while127.0.0.1 timed out. `mcuviewer_project.connect()` clears old sessio
 headers. Its `main()` recreates the GUI project: do not run it just to connect.
 `run_current_experiment.py` requires physically armed idle, runs a one-second
 test and leaves armed/idle between experiments; explicitly disarm at finish.
+New live variables must be added to an active plot/table before relying on
+`get_variable_value`: the recovery save view initially returned zeros for newly
+added NV scalars until they were placed in the active table. Independent SWD
+readback proved the save had already completed; do not repeat a save based only
+on such unacquired values. Stop MCUViewer acquisition before CubeProgrammer uses
+the same probe to avoid connection contention.
 Avoid running build scripts that automatically flash unless programming is
 authorized and power-off has been confirmed.
