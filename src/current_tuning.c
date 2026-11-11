@@ -15,11 +15,17 @@ bool current_tuning_valid(const CurrentTuneConfig *p)
         p->voltage_limit<=3.2f;
     const bool motion_6a=p->amplitude==6.0f && p->duration==0.0f &&
         p->voltage_limit<=4.0f;
+#ifdef REPO_TUNING_24V
+    // This image is only for stationary low-current step/tone identification.
+    if(motion || p->amplitude>(voltage ? 0.1f : 0.5f) ||
+       p->voltage_limit>2.0f) return false;
+#endif
     return p->mode>=0 && p->mode<=TUNE_D_RECIPROCAL && p->mode==(int)p->mode &&
         (p->axis==0 || p->axis==1) && p->amplitude>=0 &&
         p->amplitude<=(voltage ? p->voltage_limit : motion ? 6.0f : 6.25f) &&
         p->kp>=0 && p->kp<=10 && p->ki>=0 && p->ki<=10000 &&
-        p->f_start>=1 && p->f_end>=p->f_start && p->f_end<=800 &&
+        p->f_start>=1 && p->f_end>=p->f_start &&
+        p->f_end<=TUNE_MAX_FREQUENCY_HZ &&
         (motion ? (p->axis==0 && (motion_3a || motion_5a || motion_6a)) :
                   (p->duration>=0.1f && p->duration<=10)) &&
         p->voltage_limit>0 && p->voltage_limit<=4;

@@ -1,0 +1,14 @@
+{
+  "date_local": "2026-11-10",
+  "status": "software validated; flash and powered measurements pending",
+  "target": "repo-current-tuning-24v.elf, standalone GEMS bench profile, MCUViewer interface 0x00010005",
+  "elf_sha256": "dd04389851a4f5b3b4094fa36c2db823de5b0fccac879e3f8036096e01d0a2d6",
+  "hex_sha256": "2b50dbb86709c91afc5db5fc43d74b6e9cbbadd1211b32864e5027d85d0604ff",
+  "hex_address_range": ["0x08000000", "0x0800558f"],
+  "nv_sector7_reserved": true,
+  "profile": {"bus_nominal_V": 24, "bus_arm_window_V": [22, 26], "pwm_bus_normalization_V": 24, "shunt_gain_V_per_V": 20, "phase_filtered_trip_A": 1.0, "phase_raw_trip_A": 1.5, "reference_max_A": 0.5, "voltage_step_max_V": 0.1, "vector_command_ceiling_max_V": 2.0, "fixed_tone_max_Hz": 2000, "motion_mode_enabled": false, "user_arm": true, "disabled_output_boot": true},
+  "preserved_12v_profile": {"target": "repo-current-tuning.elf", "hex_sha256": "3cc3917434aa60384802a76706e406b7647559037a1666930921f2d4a19b2387"},
+  "software_validation": {"upstream_host": "23 tests, 42 checks pass", "current_tuning_12v_and_24v_recorder_nv_profile": "ASan/UBSan pass", "firmware": "all targets including dedicated 24V image build with Arm GNU 13.2", "analyzer_rehearsal": "new raw-tone analyzer reproduces earlier 400/600/800 Hz closed-response values"},
+  "local_archive": "outputs/checkpoints/current-bw-24v-candidate-2026-11-10",
+  "bench_next": "Fresh EVM-OFF confirmation before flashing. Verify sector7 persistence and disabled-output boot. Then user sets fixed 24 V with 0.25 A supply input limit, secured unloaded motor, Hall leads disconnected and USER arm. Run signed 0.1 V and bounded 0.5 A D/Q steps, retune gains if indicated, then unsaturated 20 kHz fixed tones on both axes through the -3 dB crossing."
+}

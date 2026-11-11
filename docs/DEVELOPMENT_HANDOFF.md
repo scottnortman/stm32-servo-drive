@@ -222,14 +222,33 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. The 6 A/2.5 s trial was observed smooth and electrically tracked, but
+1. A dedicated 24 V GEMS current-tuning candidate is software validated and
+   archived in `outputs/checkpoints/current-bw-24v-candidate-2026-11-10`.
+   Target `repo-current-tuning-24v.elf` uses 24 V PWM normalization and a
+   22..26 V arming window while leaving the 12 V target intact. It limits
+   current reference to 0.5 A, voltage steps to 0.1 V, vector command to
+   2 V, filtered/raw phase trips to 1/1.5 A, fixed tones to 2 kHz, and
+   disables motion mode. Interface version is `0x00010005`; saved flash gains
+   remain Kp0.8/Ki2000. All firmware targets build, upstream 23/42 checks
+   pass, and 12/24 V tuning/Recorder/NV/profile host tests pass under
+   ASan/UBSan. **The 24 V image has not yet been flashed or powered.** Image
+   hashes and exact test plan are in
+   `docs/bench/2026-11-10-current-bandwidth-24v-candidate.json`.
+2. Obtain fresh EVM-power-OFF confirmation before flashing/resetting. Check
+   sector 7 persistence and disabled-output boot, then regenerate
+   `tools/tuning/current-loop-free-24v.mcuv` against the flashed ELF. User
+   sets fixed 24 V with initial 0.25 A supply input limit, secures the unloaded
+   motor with Halls disconnected, and physically arms USER at zero drive.
+   Recheck live bus voltage and guards. Run signed 0.1 V D/Q steps, then bounded
+   0.5 A D/Q steps. Retune only if their tracking/noise/saturation warrant it.
+   Capture unsaturated 20 kHz fixed tones on both axes through the closed-loop
+   -3 dB crossing; analyze with `tools/tuning/analyze_bandwidth_tones.py`.
+3. The 6 A/2.5 s trial was observed smooth and electrically tracked, but
    reached the 4 V ceiling on some late samples. Do not infer actual rotor
    trajectory from the commanded angle. Obtain fresh EVM-OFF confirmation
    before any later flash or reset. The powered results belong to the
    archived pre-UART-text image; the final image passed only disabled boot.
-2. Extend/verify excitation beyond800Hz for full bandwidth measurements using
-   raw20kHz data. Avoid the earlier1ms plotting average for1kHz phase analysis.
-3. Validate higher currents and cross coupling/angle dependence. Actual rotor
+4. Validate higher currents and cross coupling/angle dependence. Actual rotor
    feedback is needed before developing and tuning velocity/position loops.
 
 ## Local recovery notes

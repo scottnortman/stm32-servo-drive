@@ -23,7 +23,7 @@ and voltage defaults that Git merged without a conflict.
 | Area | Resolution |
 |---|---|
 | Application | Keep upstream trajectory, observer, protocol, tests and SVPWM helper changes. No SVPWM behavior is enabled beyond upstream's own use. |
-| Configuration | Keep upstream AKM/encoder defaults and gains. `REPO_MOTOR_BENCH` explicitly selects fixed 12 V; gain20 remains a target override. Default `fw.elf` stays 24 V, three pole pairs, gain40. |
+| Configuration | Keep upstream AKM/encoder defaults and gains. `REPO_MOTOR_BENCH` selects fixed 12 V unless the dedicated GEMS current-tuning target also sets `REPO_TUNING_24V`; gain20 remains a target override. Default `fw.elf` stays 24 V, three pole pairs, gain40. |
 | PWM and ADC | Default application keeps upstream single falling-edge, raw ADC acquisition and centered sample offset. Bench builds retain original both-edge/IIR acquisition and offset; current/V6 board entry still selects ADC15cycles and CCR4=2489. |
 | Timing marker | Bench ADC keeps PC4 marker and its own DWT timing. It does not initialize upstream's PC9 ISR marker because PC9 is wired to INLC. |
 | DRV driver | Preserve the verified EVM pull-up/reset and SPI adaptations, plus public disable/fault/register and diagnostic APIs still used by commissioning targets. Upstream had removed these as unused by its application. |
@@ -33,6 +33,14 @@ and voltage defaults that Git merged without a conflict.
 
 This is one shared source tree with explicit build profiles, not a second copy
 of the controller. The bench current PI still calls `src/control.c`.
+
+The later `repo-current-tuning-24v.elf` target uses the standalone GEMS bench
+modules and 24 V bus normalization. It reserves the same NV sector 7 as the
+12 V tuning target, but has a separate MCUViewer interface version and limits
+tests to stationary 0.5 A current references, 0.1 V voltage steps and a 2 V
+vector command. The existing `repo-current-tuning.elf` remains the 12 V motion
+and tuning profile. The 24 V target was software validated; hardware results
+are tracked separately in `bench/2026-11-10-current-bandwidth-24v-candidate.json`.
 
 ## Validation
 

@@ -3,6 +3,12 @@
 #include <stdint.h>
 #include "control.h"
 
+#ifdef REPO_TUNING_24V
+#define TUNE_MAX_FREQUENCY_HZ 2000.0f
+#else
+#define TUNE_MAX_FREQUENCY_HZ 800.0f
+#endif
+
 // Runtime experiment settings. Controllers are the repository PI implementation.
 typedef struct {
     float mode, axis, amplitude, kp, ki, f_start, f_end, duration, voltage_limit;

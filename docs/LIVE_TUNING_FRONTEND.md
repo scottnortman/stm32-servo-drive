@@ -29,11 +29,35 @@ restored Ki=50.
 See `docs/bench/2026-11-10-current-step-results.json` and
 `outputs/tuning/first-current-steps.png`; full raw JSON and CSV are in outputs/tuning.
 
-Next bandwidth work needs a sweep extending above the desired crossover. The
-initial excitation guard currently caps chirps/tones at 800 Hz; extend and verify
-it before claiming a measured >=1 kHz bandwidth. Fixed-frequency tests can use
+The 12 V image caps chirps/tones at 800 Hz. The separate 24 V GEMS candidate
+allows fixed tones through 2 kHz; its hardware measurements are pending. Use
 f_start=f_end and a separate 20 kHz capture per frequency, avoiding the 32 KiB
-window limit without lowering the sampling rate.
+window limit without lowering the sampling rate. Do not infer the -3 dB
+bandwidth from the older 400/600/800 Hz captures.
+
+## 24 V GEMS current-loop bandwidth candidate
+
+Build `repo-current-tuning-24v.elf` and use `--bench24` with
+`mcuviewer_project.py` after the matching image is flashed. Its interface
+version is `0x00010005`; the 12 V image and GUI remain separate. The 24 V
+firmware requires 22..26 V at USER arming, normalizes PWM to 24 V, limits
+reference to 0.5 A and vector voltage to 2 V, and rejects rotating motion.
+Filtered/raw phase trips are 1/1.5 A. Saved gains Kp0.8/Ki2000 load at boot,
+but must be rechecked at 24 V before any bandwidth claim. The candidate and
+software-only validation are recorded in
+`docs/bench/2026-11-10-current-bandwidth-24v-candidate.json`.
+
+After fresh EVM-OFF confirmation, flash, verify disabled-output boot and saved
+gain reload, then use fixed 24 V with an initial 0.25 A **supply input** limit,
+unloaded secured motor, and Halls disconnected. USER press/release arms at zero
+output. Start with signed 0.1 V voltage steps on D/Q, followed by bounded
+0.5 A D/Q current steps at a 0.75 V vector ceiling. The helper
+`run_current_experiment.py --bench24` performs one-second tests and leaves
+the MCU armed/idle. For frequency response, run separate unsaturated fixed
+tones from low frequency through the -3 dB crossing, using the raw 20 kHz
+Recorder samples. The analyzer `analyze_bandwidth_tones.py` fits each tone,
+rejects saturated/poor fits for the crossing, and reports a bracketed
+closed-loop -3 dB estimate. Explicitly disarm with USER or stop_seq afterward.
 
 ## Updated PI tune: Kp=0.8, Ki=2000
 

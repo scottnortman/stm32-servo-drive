@@ -14,7 +14,8 @@ int main(void)
     p.amplitude=6.26f;assert(!current_tuning_valid(&p));p=settings();
     p.axis=2;assert(!current_tuning_valid(&p));p=settings();
     p.duration=0;assert(!current_tuning_valid(&p));p=settings();
-    p.f_end=801;assert(!current_tuning_valid(&p));p=settings();
+    p.f_end=TUNE_MAX_FREQUENCY_HZ;assert(current_tuning_valid(&p));
+    p.f_end=TUNE_MAX_FREQUENCY_HZ+1.0f;assert(!current_tuning_valid(&p));p=settings();
     p.mode=TUNE_VOLTAGE_STEP;p.amplitude=1;assert(!current_tuning_valid(&p));
     for(unsigned axis=0;axis<2;++axis) {
         p=settings();p.axis=(float)axis;
@@ -49,6 +50,19 @@ int main(void)
         assert(s.id_ref>=0 && s.id_ref<=p.amplitude);
     }
     assert(!s.active);
+#ifdef REPO_TUNING_24V
+    p=settings();p.mode=TUNE_CURRENT_CHIRP;p.duration=0.1f;
+    p.f_start=p.f_end=2000.0f;p.voltage_limit=2.0f;
+    assert(current_tuning_valid(&p));
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    for(unsigned n=0;n<2002u;++n) {
+        current_tuning_step(&s,0,0);
+        assert(isfinite(s.id_ref) && s.id_ref>=0 && s.id_ref<=0.5f);
+        assert(isfinite(s.vd) && hypotf(s.vd,s.vq)<=2.00001f);
+    }
+    assert(!s.active);
+#endif
+#ifndef REPO_TUNING_24V
     // Open-loop field command: one cosine-eased mechanical turn out and back,
     // with D-axis current control and a hard 41 s deadline.
     p=settings();p.mode=TUNE_D_RECIPROCAL;p.amplitude=3.0f;
@@ -131,5 +145,15 @@ int main(void)
     assert(s.mechanical_position==0.0f && s.half_moves==4u);
     current_tuning_stop(&s);
     assert(!s.active && s.vd==0.0f && !s.completed);
+#else
+    p=settings();p.mode=TUNE_D_RECIPROCAL;p.amplitude=6.0f;
+    p.duration=0.0f;p.voltage_limit=2.0f;
+    assert(!current_tuning_valid(&p));
+    p=settings();p.amplitude=0.51f;assert(!current_tuning_valid(&p));
+    p=settings();p.voltage_limit=2.01f;assert(!current_tuning_valid(&p));
+    p=settings();p.mode=TUNE_VOLTAGE_STEP;p.amplitude=0.101f;
+    assert(!current_tuning_valid(&p));
+    p.amplitude=0.1f;assert(current_tuning_valid(&p));
+#endif
     puts("PASS: config bounds,actual repo PI againstRL plant,bothaxes,vector saturation,finite chirp,test completion");
 }

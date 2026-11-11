@@ -66,15 +66,16 @@
 // Bus voltage
 // =============================================================================
 
-// Sets the current PI clamp (+-V_BUS/2 = +-12V, loops.c) and the PWM
+// Sets the current PI clamp (+-V_BUS/2, loops.c) and the PWM
 // normalization (pwm.c). The supply must actually be at this voltage, or the
 // firmware commands more than the bridge delivers. 24V rather than 12V because
 // at 12V the current loop's vq hit its 6V clamp near 1.25kHz during a 0.8A
 // chirp; the loop gains do not depend on V_BUS.
-#ifdef REPO_MOTOR_BENCH
-// Standalone Nucleo/EVM commissioning uses a fixed 12V supply.
+#if defined(REPO_MOTOR_BENCH) && !defined(REPO_TUNING_24V)
+// Existing standalone Nucleo/EVM commissioning keeps its fixed 12V supply.
 #define V_BUS   12.0f
 #else
+// The upstream AKM app and dedicated 24V GEMS tuning target use 24V.
 #define V_BUS   24.0f
 #endif
 

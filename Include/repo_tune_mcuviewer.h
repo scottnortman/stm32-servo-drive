@@ -5,6 +5,7 @@
 // Edit the request, then increment apply_seq. A start also requires USER arming.
 extern volatile float g_tune_mode,g_tune_axis,g_tune_amplitude,g_tune_kp,g_tune_ki;
 extern volatile float g_tune_f_start,g_tune_f_end,g_tune_duration,g_tune_voltage_limit;
+extern volatile uint32_t g_tune_interface_version;
 extern volatile uint32_t g_tune_apply_seq, g_tune_start_seq, g_tune_stop_seq;
 extern volatile uint32_t g_tune_nv_save_seq, g_tune_nv_status;
 extern volatile float g_tune_command_mech_rev;

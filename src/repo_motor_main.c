@@ -143,9 +143,13 @@ void TIM1_UP_TIM10_IRQHandler(void)
 #ifdef REPO_CURRENT_TUNING
     // Motion profiles tighten the 6.25 A-capable tuning target's phase trips.
     // The ADC watchdog threshold is selected at physical arming.
+#ifdef REPO_TUNING_24V
+    const float phase_trip=1.0f;
+#else
     const float phase_trip=repo_tune_d_reciprocal_selected() ?
         (repo_tune_motion_amplitude()==6.0f ? 7.5f :
          repo_tune_motion_amplitude()==5.0f ? 6.5f : 3.75f) : REPO_FILTER_TRIP_A;
+#endif
 #else
     const float phase_trip=REPO_FILTER_TRIP_A;
 #endif
@@ -218,7 +222,11 @@ void TIM1_UP_TIM10_IRQHandler(void)
     const uint32_t duration=DWT->CYCCNT-cycle;
     if (duration>g_repo_irq_max_cycles) { g_repo_irq_max_cycles=duration; }
 #ifdef REPO_CURRENT_TUNING
+#ifdef REPO_TUNING_24V
+    if(duration>4500u)
+#else
     if(repo_tune_d_reciprocal_selected() && duration>4500u)
+#endif
     { stop_drive(TIMING_STOP); }
 #endif
 }
@@ -245,8 +253,10 @@ static bool check_bus(void)
     const uint16_t cal=*(const uint16_t *)0x1FFF7A2Au;
     const uint32_t vdda=ref!=0u ? (uint32_t)cal*3300u*8u/ref : 0u;
     g_repo_bus_mv=(uint32_t)((uint64_t)bus*vdda*392760u/(8ull*4095u*9760u));
+    const uint32_t bus_nominal_mv=(uint32_t)(V_BUS*1000.0f);
     if (cal<1000u || cal>2000u || vdda<3000u || vdda>3600u ||
-        g_repo_bus_mv<10000u || g_repo_bus_mv>14000u)
+        g_repo_bus_mv<bus_nominal_mv-2000u ||
+        g_repo_bus_mv>bus_nominal_mv+2000u)
     { stop_drive(BUS_STOP); return false; }
     return true;
 }
@@ -452,7 +462,11 @@ int main(void)
     uart_text("1A filtered/2A sampled raw trips. USER hold stops; nFAULT immediate. No timed stop.\r\n");
 #endif
 #ifdef REPO_MCUVIEWER
+#ifdef REPO_TUNING_24V
+    uart_text("Secure unloaded motor.24V fixed/0.25A input limit for INITIAL0.5A test.Halls disconnected.\r\n");
+#else
     uart_text("Secure unloaded motor.12V fixed/0.25A input limit for INITIAL0.5A test.Halls disconnected.\r\n");
+#endif
 #elif defined(REPO_RECIPROCAL)
 #ifdef REPO_CURRENT_6250MA
     uart_text("Secure unloaded motor.Halls disconnected.12V/3.5A supply limit,USER start.\r\n");
@@ -538,9 +552,13 @@ arm_again:
         for (unsigned int c=1u;c<3u;++c)
         { if (adc_offset[c]<low) { low=adc_offset[c]; } if (adc_offset[c]>high) { high=adc_offset[c]; } }
 #ifdef REPO_CURRENT_TUNING
+#ifdef REPO_TUNING_24V
+        const float raw_trip_a=1.5f;
+#else
         const float raw_trip_a=repo_tune_d_reciprocal_selected() ?
         (repo_tune_motion_amplitude()==6.0f ? 8.0f :
          repo_tune_motion_amplitude()==5.0f ? 7.0f : 4.0f) : REPO_RAW_TRIP_A;
+#endif
 #else
         const float raw_trip_a=REPO_RAW_TRIP_A;
 #endif

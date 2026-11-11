@@ -23,6 +23,11 @@ int main(void)
 {
     memset(stored,0xff,sizeof(stored));
     repo_tune_init();
+#ifdef REPO_TUNING_24V
+    assert(g_tune_interface_version==0x00010005u);
+#else
+    assert(g_tune_interface_version==0x00010004u);
+#endif
     assert(g_tune_nv_status==TUNE_GAIN_EMPTY);
     assert(repo_tune_recorder_self_test());
     ++g_tune_start_seq;poll(false);assert(!repo_tune_take_start() && g_tune_result==3);
@@ -62,6 +67,7 @@ int main(void)
     assert(kp==0.8f && ki==50);
     g_tune_kp=0.2f;repo_tune_init();
     assert(g_tune_nv_status==TUNE_GAIN_LOADED && g_tune_kp==0.8f && g_tune_ki==50);
+#ifndef REPO_TUNING_24V
     // Motion needs the exact persisted pair, a disarmed configuration commit,
     // and a fresh physical arm before its bounded D-axis command can start.
     g_tune_mode=TUNE_D_RECIPROCAL;g_tune_axis=0;g_tune_amplitude=3.0f;
@@ -88,6 +94,16 @@ int main(void)
     ++g_tune_stop_seq;poll(true);
     assert(repo_tune_take_stop());
     repo_tune_disarm();poll(false);
+#else
+    g_tune_mode=TUNE_D_RECIPROCAL;g_tune_amplitude=6.0f;
+    g_tune_duration=0.0f;g_tune_voltage_limit=2.0f;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==1);
+    g_tune_mode=TUNE_CURRENT_CHIRP;g_tune_amplitude=0.5f;
+    g_tune_f_start=g_tune_f_end=2000.0f;g_tune_duration=1.0f;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    repo_tune_disarm();poll(false);
+#endif
     // Exercise the actual vendor sampler with five real scalar addresses.
     volatile void *signals[]={&g_tune_reference,&g_tune_measured,&g_tune_cross_current,
                               &g_tune_voltage,&g_tune_saturated};

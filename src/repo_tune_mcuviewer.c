@@ -11,7 +11,12 @@ volatile float g_tune_kp=0.2f,g_tune_ki=50,g_tune_f_start=5,g_tune_f_end=200;
 volatile float g_tune_duration=1,g_tune_voltage_limit=0.75f;
 // RAM interface version also keeps editable scalars away from the SRAM boundary
 // that MCUViewer 1.4 currently excludes during automatic address resolution.
-volatile uint32_t g_tune_interface_version=0x00010004u;
+#ifdef REPO_TUNING_24V
+#define TUNE_INTERFACE_VERSION 0x00010005u
+#else
+#define TUNE_INTERFACE_VERSION 0x00010004u
+#endif
+volatile uint32_t g_tune_interface_version=TUNE_INTERFACE_VERSION;
 volatile uint32_t g_tune_apply_seq,g_tune_start_seq,g_tune_stop_seq;
 volatile uint32_t g_tune_nv_save_seq,g_tune_nv_status;
 volatile float g_tune_command_mech_rev;
@@ -38,7 +43,7 @@ void repo_tune_init(void)
     if(loaded_nv) { g_tune_kp=loaded_kp=kp; g_tune_ki=loaded_ki=ki; }
     const CurrentTuneConfig p=requested();
     current_tuning_init(&tune,&p);
-    config_ok=current_tuning_valid(&p) && g_tune_interface_version==0x00010004u;
+    config_ok=current_tuning_valid(&p) && g_tune_interface_version==TUNE_INTERFACE_VERSION;
 }
 static bool same_experiment(const CurrentTuneConfig *a,const CurrentTuneConfig *b)
 {
