@@ -6,6 +6,7 @@
 #include <stdio.h>
 #ifdef REPO_MOTOR_BENCH
 #include "repo_motor_profile.h"
+#include "current_tuning.h"
 #endif
 int main(void)
 {
@@ -14,6 +15,9 @@ int main(void)
 #ifdef REPO_MOTOR_BENCH
 #ifdef REPO_TUNING_24V
     assert(V_BUS == 24.0f && SHUNT_GAIN == 20.0f);
+#ifdef REPO_MOTION_24V
+    assert(TUNE_MOTION_KP == 1.0f && TUNE_MOTION_KI == 2500.0f);
+#endif
     puts("PASS: 24V gain20 GEMS tuning profile isolated from 12V bench");
 #else
     assert(V_BUS == 12.0f && SHUNT_GAIN == 20.0f);

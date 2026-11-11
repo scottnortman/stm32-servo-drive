@@ -3,6 +3,17 @@
 #include <stdint.h>
 #include "control.h"
 
+#ifdef REPO_MOTION_24V
+#ifndef REPO_TUNING_24V
+#error "24V motion requires the 24V bus/tuning profile"
+#endif
+#define TUNE_MOTION_KP 1.0f
+#define TUNE_MOTION_KI 2500.0f
+#else
+#define TUNE_MOTION_KP 0.8f
+#define TUNE_MOTION_KI 2000.0f
+#endif
+
 #ifdef REPO_TUNING_24V
 #define TUNE_MAX_FREQUENCY_HZ 2000.0f
 #else

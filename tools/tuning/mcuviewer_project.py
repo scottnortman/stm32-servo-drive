@@ -51,15 +51,18 @@ def connect():
         pass
 
 
-def main(nv=False, elf=None, motion=False, bench24=False):
+def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
+    if motion24:
+        motion = bench24 = True
     if nv and motion:
         raise ValueError("select either --nv or --motion")
-    if bench24 and (nv or motion):
+    if bench24 and (nv or motion) and not motion24:
         raise ValueError("the 24V bandwidth view uses all 20 slots for tone controls")
     connect()
     # This script intentionally starts from an empty project. Save other work first.
     tool("new_project")
-    default_elf = ROOT / ("build-bringup-arm/repo-current-tuning-24v.elf" if bench24
+    default_elf = ROOT / ("build-bringup-arm/repo-current-motion-24v.elf" if motion24 else
+                          "build-bringup-arm/repo-current-tuning-24v.elf" if bench24
                           else "build-bringup/repo-current-tuning.elf")
     tool("set_elf_path", path=str(elf or default_elf), relative=1)
     tool("set_elf_parser", parser="gdb")
@@ -73,8 +76,9 @@ def main(nv=False, elf=None, motion=False, bench24=False):
     parameters = {name: limits for name, limits in PARAMETERS.items()
                   if not (nv or motion) or name not in ("f_start", "f_end")}
     if bench24:
-        parameters.update(mode=(0, 3), amplitude=(0, 0.5), f_start=(1, 2000),
-                          f_end=(1, 2000), voltage_limit=(0.001, 2))
+        parameters.update(mode=(0, 3), amplitude=(0, 0.5), voltage_limit=(0.001, 2))
+        if not motion:
+            parameters.update(f_start=(1, 2000), f_end=(1, 2000))
     if motion:
         parameters.update(mode=(0, 4), amplitude=(0, 6), duration=(0, 41),
                           voltage_limit=(0.001, 4))
@@ -123,7 +127,8 @@ def main(nv=False, elf=None, motion=False, bench24=False):
          pre_trigger_samples=200, enabled=1)
     tool("set_recorder_mode", mode="normal")
     tool("refresh_variable_addresses")
-    name = ("current-loop-free-24v.mcuv" if bench24 else
+    name = ("current-loop-free-motion-24v.mcuv" if motion24 else
+            "current-loop-free-24v.mcuv" if bench24 else
             "current-loop-free-motion.mcuv" if motion else
             "current-loop-free-nv.mcuv" if nv else "current-loop-free.mcuv")
     tool("save_project_as", path=str(ROOT / "tools/tuning" / name))
@@ -142,7 +147,9 @@ if __name__ == "__main__":
                         help="20-slot D-axis reciprocal view; use only with the matching motion image")
     parser.add_argument("--bench24",action="store_true",
                         help="20-slot 24V GEMS bandwidth view, fixed tones through 2kHz")
+    parser.add_argument("--motion24",action="store_true",
+                        help="24V D-axis motion with persisted1.0/2500 gains")
     parser.add_argument("--elf",type=Path,
                         help="ELF matching the flashed image (default: build-bringup/repo-current-tuning.elf)")
     args=parser.parse_args()
-    main(args.nv,args.elf.resolve() if args.elf else None,args.motion,args.bench24)
+    main(args.nv,args.elf.resolve() if args.elf else None,args.motion,args.bench24,args.motion24)

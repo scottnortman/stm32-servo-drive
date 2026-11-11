@@ -750,3 +750,18 @@ add_custom_command(TARGET repo-current-tuning-24v.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:repo-current-tuning-24v.elf> ${CMAKE_BINARY_DIR}/repo-current-tuning-24v.hex
     COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:repo-current-tuning-24v.elf> ${CMAKE_BINARY_DIR}/repo-current-tuning-24v.bin
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:repo-current-tuning-24v.elf>)
+
+# Isolated 24V motion profile: same fast D-axis trajectory, validated NV gains.
+add_executable(repo-current-motion-24v.elf ${REPO_TUNING_SOURCES})
+get_target_property(REPO_MOTION_24V_LINK_OPTIONS repo-current-tuning.elf LINK_OPTIONS)
+list(TRANSFORM REPO_MOTION_24V_LINK_OPTIONS REPLACE "repo-current-tuning.map" "repo-current-motion-24v.map")
+target_include_directories(repo-current-motion-24v.elf PRIVATE ${DRV_BRINGUP_INCLUDES} third_party/mcuviewer_recorder)
+target_compile_definitions(repo-current-motion-24v.elf PRIVATE STM32F411xE REPO_MOTOR_BENCH REPO_RECIPROCAL REPO_DOUBLE_CURRENT REPO_CURRENT_5000MA REPO_RECIP_QUAD_SPEED REPO_CURRENT_6250MA REPO_CURRENT_TUNING REPO_MCUVIEWER REPO_TUNING_24V REPO_MOTION_24V SHUNT_GAIN=20.0f)
+target_compile_options(repo-current-motion-24v.elf PRIVATE ${DRV_BRINGUP_COMPILE_OPTIONS})
+target_link_options(repo-current-motion-24v.elf PRIVATE ${REPO_MOTION_24V_LINK_OPTIONS})
+target_link_libraries(repo-current-motion-24v.elf PRIVATE gcc m)
+set_property(TARGET repo-current-motion-24v.elf APPEND PROPERTY LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker/memory-tuning.ld)
+add_custom_command(TARGET repo-current-motion-24v.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:repo-current-motion-24v.elf> ${CMAKE_BINARY_DIR}/repo-current-motion-24v.hex
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:repo-current-motion-24v.elf> ${CMAKE_BINARY_DIR}/repo-current-motion-24v.bin
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:repo-current-motion-24v.elf>)

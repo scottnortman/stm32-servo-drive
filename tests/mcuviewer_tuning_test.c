@@ -23,7 +23,9 @@ int main(void)
 {
     memset(stored,0xff,sizeof(stored));
     repo_tune_init();
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+    assert(g_tune_interface_version==0x00010006u);
+#elif defined(REPO_TUNING_24V)
     assert(g_tune_interface_version==0x00010005u);
 #else
     assert(g_tune_interface_version==0x00010004u);
@@ -67,7 +69,30 @@ int main(void)
     assert(kp==0.8f && ki==50);
     g_tune_kp=0.2f;repo_tune_init();
     assert(g_tune_nv_status==TUNE_GAIN_LOADED && g_tune_kp==0.8f && g_tune_ki==50);
-#ifndef REPO_TUNING_24V
+#if defined(REPO_MOTION_24V)
+    // The prior persisted pair cannot start the new 24V motion image.
+    g_tune_mode=TUNE_D_RECIPROCAL;g_tune_axis=0;g_tune_amplitude=6;
+    g_tune_duration=6;g_tune_voltage_limit=4;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(!repo_tune_take_start() && g_tune_result==3);
+    g_tune_kp=1;g_tune_ki=2500;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    // Editing RAM alone cannot satisfy the persisted-pair gate.
+    ++g_tune_start_seq;poll(true);assert(!repo_tune_take_start() && g_tune_result==3);
+    ++g_tune_nv_save_seq;poll(false);assert(g_tune_nv_status==TUNE_GAIN_SAVED);
+    repo_tune_init();assert(g_tune_nv_status==TUNE_GAIN_LOADED);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    assert(repo_tune_d_reciprocal_selected());
+    for(unsigned n=0;n<120001u;++n) repo_tune_control_tick(n,6,0,phase,&vd,&vq);
+    poll(true);assert(repo_tune_take_stop());
+    repo_tune_disarm();poll(false);
+    g_tune_duration=0;++g_tune_apply_seq;poll(true);assert(g_tune_result==2);
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    g_tune_kp=0.9f;++g_tune_apply_seq;poll(true);assert(g_tune_result==2);
+    ++g_tune_stop_seq;poll(true);assert(repo_tune_take_stop());
+    repo_tune_disarm();poll(false);
+#elif !defined(REPO_TUNING_24V)
     // Motion needs the exact persisted pair, a disarmed configuration commit,
     // and a fresh physical arm before its bounded D-axis command can start.
     g_tune_mode=TUNE_D_RECIPROCAL;g_tune_axis=0;g_tune_amplitude=3.0f;

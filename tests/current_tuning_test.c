@@ -62,7 +62,41 @@ int main(void)
     }
     assert(!s.active);
 #endif
-#ifndef REPO_TUNING_24V
+#if defined(REPO_MOTION_24V)
+    p=settings();p.mode=TUNE_D_RECIPROCAL;p.amplitude=6.0f;
+    p.duration=6.0f;p.voltage_limit=4.0f;p.kp=TUNE_MOTION_KP;p.ki=TUNE_MOTION_KI;
+    assert(current_tuning_valid(&p));
+    p.axis=1;assert(!current_tuning_valid(&p));p.axis=0;
+    p.duration=6.01f;assert(!current_tuning_valid(&p));p.duration=6.0f;
+    p.amplitude=5;assert(!current_tuning_valid(&p));p.amplitude=6;
+    p.voltage_limit=4.01f;assert(!current_tuning_valid(&p));p.voltage_limit=4;
+    const float motion_decay=expf(-0.6f*DT_CURRENT/0.0003f);
+    for(unsigned continuous=0;continuous<2;++continuous) {
+        p.duration=continuous ? 0 : 6;
+        current_tuning_init(&s,&p);current_tuning_start(&s);
+        assert(s.samples==120000u && current_tuning_field_angle(&s)==0);
+        float id=0;
+        const unsigned count=continuous ? 220000u : 120001u;
+        for(unsigned n=0;n<count;++n) {
+            current_tuning_field_angle(&s);
+            current_tuning_step(&s,id,0);
+            id=id*motion_decay+s.vd/0.6f*(1-motion_decay);
+            assert(hypotf(s.vd,s.vq)<=4.00001f);
+            if(n==18000u) assert(fabsf(id-6.0f)<0.02f && !s.saturated);
+            if(n==70000u || n==170000u)
+                assert(fabsf(s.mechanical_position-FOC_TWO_PI)<1e-4f);
+        }
+        if(continuous) {
+            assert(s.active && !s.completed && s.half_moves==4u);
+            current_tuning_stop(&s);
+        } else assert(!s.active && s.completed && s.half_moves==2u);
+        assert(s.vd==0 && s.vq==0);
+    }
+    p=settings();p.amplitude=0.51f;assert(!current_tuning_valid(&p));
+    p=settings();p.voltage_limit=2.01f;assert(!current_tuning_valid(&p));
+    p=settings();p.mode=TUNE_VOLTAGE_STEP;p.amplitude=0.101f;
+    assert(!current_tuning_valid(&p));
+#elif !defined(REPO_TUNING_24V)
     // Open-loop field command: one cosine-eased mechanical turn out and back,
     // with D-axis current control and a hard 41 s deadline.
     p=settings();p.mode=TUNE_D_RECIPROCAL;p.amplitude=3.0f;

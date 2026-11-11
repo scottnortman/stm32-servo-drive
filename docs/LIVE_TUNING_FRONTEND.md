@@ -1,5 +1,29 @@
 # MCUViewer FREE current-loop tuning
 
+## 24 V D-axis motion repeat
+
+For the new-gain motion repeat use `repo-current-motion-24v.elf`, interface0x10006,
+with `python tools/tuning/mcuviewer_project.py --motion24 --elf <matching ELF>`.
+GUI: `tools/tuning/current-loop-free-motion-24v.mcuv`. Do not use the stationary
+24 V image for motion: its validator intentionally rejects mode4.
+
+Apply mode4, axis0, amplitude6 A, Kp1.0/Ki2500, voltage limit4 V while disarmed.
+Duration6 gives one firmware-bounded cycle; duration0 repeats until physical
+USER/GUI stop/fault. Both use 1 s alignment then 2.5 s legs, one commanded turn
+each way. Exact gains must have loaded from NV; power-up may reset RAM settings,
+so apply after EVM power settles and before USER arming. The powered trial used
+fixed24 V/2 A input limit, secured unloaded motor and disconnected Halls.
+
+Both bounded and continuous trials passed within the documented limits. User
+reported smoother motion; no encoder measured shaft travel/speed. Continuous
+trace: about46.76 s/18 half moves, mean6.00027 A, three sampled saturation flags.
+See `bench/2026-11-10-d-axis-reciprocal-24v.json`. Final EVM OFF, outputs LOW,
+viewer STOP. The other 24 V sections below preserve the earlier low-current tune.
+
+A long monitor hit MCP HTTP404 around32 s. `connect()` restored the session and
+preserved live curves; do not call `main()` just to reconnect. Physical USER stop
+remains necessary when the host cannot command stop; SWD loss is not a heartbeat.
+
 ## Current 24 V checkpoint (2026-11-10)
 
 The dedicated 24 V image is flashed; powered low-current steps and tones are

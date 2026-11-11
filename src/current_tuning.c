@@ -13,12 +13,21 @@ bool current_tuning_valid(const CurrentTuneConfig *p)
         p->voltage_limit<=2.5f;
     const bool motion_5a=p->amplitude==5.0f && p->duration==21.0f &&
         p->voltage_limit<=3.2f;
-    const bool motion_6a=p->amplitude==6.0f && p->duration==0.0f &&
+    const bool motion_6a=p->amplitude==6.0f && (p->duration==0.0f
+#ifdef REPO_MOTION_24V
+        || p->duration==6.0f // one bounded cycle before continuous bench use
+#endif
+        ) &&
         p->voltage_limit<=4.0f;
 #ifdef REPO_TUNING_24V
-    // This image is only for stationary low-current step/tone identification.
-    if(motion || p->amplitude>(voltage ? 0.1f : 0.5f) ||
-       p->voltage_limit>2.0f) return false;
+    if(motion) {
+#ifdef REPO_MOTION_24V
+        if(!motion_6a) return false;
+#else
+        return false; // stationary identification image stays isolated
+#endif
+    } else if(p->amplitude>(voltage ? 0.1f : 0.5f) ||
+              p->voltage_limit>2.0f) return false;
 #endif
     return p->mode>=0 && p->mode<=TUNE_D_RECIPROCAL && p->mode==(int)p->mode &&
         (p->axis==0 || p->axis==1) && p->amplitude>=0 &&
@@ -54,7 +63,7 @@ float current_tuning_field_angle(CurrentTuning *s)
     if(s->prepared_sample==s->sample) return s->field_theta;
     // At the 2.5 s leg speed the field moves under 16 electrical rad/s.
     // Updating every 0.25 ms bounds its step below 0.004 electrical rad.
-    const uint32_t stride=s->config.duration==0.0f ? 5u : 10u;
+    const uint32_t stride=s->config.amplitude==6.0f ? 5u : 10u;
     if(s->prepared_sample!=UINT32_MAX && s->sample<s->samples &&
        s->sample%stride!=0u) return s->field_theta;
     const uint32_t align=(uint32_t)(1.0f/DT_CURRENT);

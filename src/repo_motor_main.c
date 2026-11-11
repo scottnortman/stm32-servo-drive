@@ -143,7 +143,9 @@ void TIM1_UP_TIM10_IRQHandler(void)
 #ifdef REPO_CURRENT_TUNING
     // Motion profiles tighten the 6.25 A-capable tuning target's phase trips.
     // The ADC watchdog threshold is selected at physical arming.
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+    const float phase_trip=repo_tune_d_reciprocal_selected() ? 7.5f : 1.0f;
+#elif defined(REPO_TUNING_24V)
     const float phase_trip=1.0f;
 #else
     const float phase_trip=repo_tune_d_reciprocal_selected() ?
@@ -414,7 +416,10 @@ int main(void)
     uart_text("Original repo signed d/q PI,PWM,ADC. Fixed electrical frame; no rotor feedback.\r\n");
     uart_text("Default D-axis0.5A step,1s test,0.75V ceiling. Gains are starting values.\r\n");
     uart_text("USER arms at ZERO output. Apply settings then increment START in MCUViewer.\r\n");
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+    uart_text("24V D-axis motion:6A,2.5s/leg,4V ceiling,NV gains1/2500.6s check or continuous until USER.\r\n");
+    uart_text("Stationary tests retain0.5A/2V limits.USER/stop/fault disarms; re-arm with USER.\r\n");
+#elif defined(REPO_TUNING_24V)
     uart_text("24V stationary tuning only:0.5A reference,0.1V voltage step,2V vector ceiling,2kHz tones.No motion.\r\n");
     uart_text("Bounded tests auto-stop. USER/stop/fault disarms; re-arm with USER.\r\n");
 #else
@@ -450,7 +455,9 @@ int main(void)
     uart_text("Slow10rpm FIELD; nominal700mA amplitude limit; max550mV phase voltage.\r\n");
 #endif
 #ifdef REPO_MCUVIEWER
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+    uart_text("Motion:7.5A filtered/8A raw trips.Stationary:1A/1.5A.USER20ms,nFAULT,ADC,45us IRQ guards.\r\n");
+#elif defined(REPO_TUNING_24V)
     uart_text("1A filtered/1.5A sampled raw trips; USER20ms,nFAULT,ADC guards retained.\r\n");
 #else
     uart_text("7.5A filtered/8A sampled raw trips; USER20ms,nFAULT,ADC guards retained.\r\n");
@@ -471,7 +478,9 @@ int main(void)
     uart_text("1A filtered/2A sampled raw trips. USER hold stops; nFAULT immediate. No timed stop.\r\n");
 #endif
 #ifdef REPO_MCUVIEWER
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+    uart_text("Secure unloaded motor.24V fixed/2A input limit for6A motion.Halls disconnected.\r\n");
+#elif defined(REPO_TUNING_24V)
     uart_text("Secure unloaded motor.24V fixed/0.25A input limit for INITIAL0.5A test.Halls disconnected.\r\n");
 #else
     uart_text("Secure unloaded motor.12V fixed/0.25A input limit for INITIAL0.5A test.Halls disconnected.\r\n");
@@ -561,7 +570,9 @@ arm_again:
         for (unsigned int c=1u;c<3u;++c)
         { if (adc_offset[c]<low) { low=adc_offset[c]; } if (adc_offset[c]>high) { high=adc_offset[c]; } }
 #ifdef REPO_CURRENT_TUNING
-#ifdef REPO_TUNING_24V
+#ifdef REPO_MOTION_24V
+        const float raw_trip_a=repo_tune_d_reciprocal_selected() ? 8.0f : 1.5f;
+#elif defined(REPO_TUNING_24V)
         const float raw_trip_a=1.5f;
 #else
         const float raw_trip_a=repo_tune_d_reciprocal_selected() ?

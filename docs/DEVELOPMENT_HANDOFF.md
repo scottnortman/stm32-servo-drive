@@ -3,6 +3,66 @@
 Last engineering state: 2026-11-10. This is a curated project handoff, not the
 full chat transcript. Verify live hardware and Git state before acting.
 
+## Latest checkpoint: 24 V rotating D-axis motion
+
+User requested the previous 6 A, 2.5 s-per-leg open-loop shaft-motion test with
+new Kp1.0/Ki2500 at 24 V. Added separate `repo-current-motion-24v.elf` and GUI
+`tools/tuning/current-loop-free-motion-24v.mcuv` (interface 0x10006). The existing
+12 V and stationary-only 24 V targets remain separate. Motion uses the same
+repo PI/PWM/ADC and cosine trajectory: 1 s alignment, then one commanded
+mechanical turn each way in 2.5 s legs. No rotor feedback is available.
+
+The new target requires exactly 1.0/2500 loaded from NV, configuration applied
+while disarmed, physical USER arming and a fresh start. Mode4 accepts 6 A with
+a 4 V vector ceiling, duration6 for one bounded check or duration0 for continuous
+motion until USER/GUI stop/fault. Motion trips remain 7.5 A filtered/8 A raw,
+45 us IRQ guard; stationary tests retain 0.5 A reference, 0.1 V voltage steps,
+2 V vector ceiling and 1/1.5 A trips. Bus preflight must be 22..26 V. There is
+no SWD heartbeat: viewer disconnection alone does not stop continuous motion.
+
+After fresh EVM-OFF confirmation, flashed/verified sectors0/1 only; saved sector7
+gains were retained. Exact image is archived in ignored
+`outputs/checkpoints/d-axis-reciprocal-24v-6a-2026-11-10`. HEX SHA256:
+`504ddba2acf0e45edbb64e547c2b8da5b28ce4f4ebcdb846c519ae6cb5bf8dea`.
+Boot: interface0x10006, self-test1, NV1.0/2500, disabled outputs, Recorder fault0 /
+max516cycles, CFSR/HFSR0. User powered fixed24 V with a 2 A supply input limit,
+secured unloaded motor/Halls disconnected; applied settings after power-up,
+then physically armed USER. Bus preflight was 23.735 V.
+
+A firmware-bounded 6 s cycle completed two half moves and auto-disarmed, reason9.
+Selected current mean5.99693 A, MAE0.01908 A, peak D voltage3.62512 V and no
+sampled saturation. IRQ maximum3252cycles; outputs LOW and CPU/Recorder faults0.
+User reported motion normal and re-armed for continuous mode. The continuous
+run lasted approximately46.76 s in the saved trace and completed18 half moves
+before physical USER stop, reason1. Selected current mean6.00027 A,
+MAE0.01784 A, peak D voltage4.000 V, three of4535 selected trend points flagged
+vector saturation. Maximum cross current0.13781 A. IRQ maximum3277cycles,
+Recorder fault0/max516cycles, CFSR/HFSR0 and ENABLE/INLs/MOE LOW. User reported
+**smoother than the prior12 V run**. Actual shaft travel/speed remains unmeasured.
+
+At about32 s the host monitor received HTTP404 from MCUViewer MCP. A fresh
+`connect()` re-established the API session without resetting/flashing; GUI
+acquisition continued and the full trace was saved. This is distinct from the
+earlier SWD core-ID failure. The failed exception-path stop write did not reach
+the MCU; the verified stop was physical USER. Future long monitor helpers should
+renew/reconnect MCP sessions on404 without recreating projects or resetting.
+
+Final: user confirmed **EVM OFF** after stopping; drive disarmed, zero reference
+and voltage, outputs LOW. Viewer STOP on matching motion controls, mode4/6 A /
+duration0/4 V still applied in RAM; USER plus fresh start remain necessary.
+No further flash/reset occurred after the powered tests. Source and evidence
+are recorded by tag `checkpoint/d-axis-reciprocal-24v-6a-2026-11-10`. Fresh OFF
+confirmation is required before any later flash/reset; COM3 remains untouched.
+
+Software validation: upstream23tests/42checks, all three tuning variants and
+real Recorder/mailbox/NV/profile suites under ASan/UBSan pass, including bounded
+completion and two continuous cycles; full Arm firmware build passes. Five GUI
+profiles retain20 unique live variables. These checks are separate from the
+bench observations above. Evidence: `bench/2026-11-10-d-axis-reciprocal-24v.json`;
+raw trends and manifest: `bench/current-tuning/24v-d-axis-motion-2026-11-10.zip`;
+plot: ignored `outputs/tuning/24v-motion-continuous.png`. Motion metrics use
+100 Hz live trends, not synchronous20 kHz Recorder data.
+
 ## Latest checkpoint: 24 V retune and bandwidth complete
 
 After two PC resets, the 24 V work resumed on 2026-11-10. Fresh EVM-OFF
@@ -283,20 +343,16 @@ go to ignored `outputs/tuning`. Firmware/code tests do not imply bench approval.
 
 ## Next work, in order
 
-1. The 24 V low-current retune, sparse bandwidth measurement and NV save/reload
-   are complete. Use `repo-current-tuning-24v.elf`, the matching 24 V GUI and
-   saved Kp1.0/Ki2500. Preserve the separate 12 V build and historical gain file;
-   restore 0.8/2000 in NV before using its older motion profile.
-2. Investigate the SWD/USB interruption before sustained motion. Finer crossing
-   captures around D1.05/Q1.23 kHz are optional; measured brackets already span
-   D800..1200/Q1200..1600 Hz. Fresh EVM-OFF confirmation precedes any flash/reset.
-3. Validate higher currents, cross coupling and rotor-angle dependence before
-   extending the low-current tune. The 24 V tuning image disables motion and
-   retains 0.5 A reference, 0.1 V voltage-step, 2 V vector command and 1/1.5 A
-   filtered/raw phase guards, with a 22..26 V arming window.
-4. Obtain rotor feedback before developing velocity and position loops.
-   Earlier 12 V reciprocal motion was observed smooth, but shaft travel was
-   unmeasured and some fast-run samples reached the 4 V ceiling.
+1. The requested 24 V D-axis motion repeat is complete and was observed smoother.
+   Keep the archived tested image/capture and separate 12 V/stationary targets.
+   Source/evidence checkpoint: `checkpoint/d-axis-reciprocal-24v-6a-2026-11-10`.
+2. Continuous motion still touches the 4 V ceiling on some late trend samples.
+   Validate temperature, current and angle dependence before extending operation;
+   the low-current bandwidth measurement is not a high-current robustness proof.
+3. Make long MCUViewer host monitors renew/reconnect MCP sessions on HTTP404;
+   keep firmware USER/fault stops independent of host availability.
+4. Obtain actual rotor feedback before velocity/position-loop development.
+   Fresh EVM-OFF confirmation before any flash/reset; COM3 is the user's console.
 
 ## Local recovery notes
 

@@ -42,6 +42,14 @@ vector command. The existing `repo-current-tuning.elf` remains the 12 V motion
 and tuning profile. The 24 V target was software validated; hardware results
 are tracked separately in `bench/2026-11-10-current-bandwidth-24v-candidate.json`.
 
+The separate `repo-current-motion-24v.elf` adds `REPO_MOTION_24V` on the same
+24 V bus/bench modules. It requires persisted Kp1.0/Ki2500 for 6 A mode4,
+with a 4 V ceiling, 2.5 s legs and either a 6 s bounded check or continuous
+USER stop. Stationary limits remain unchanged; the original stationary24 V
+and12 V images retain their validators and gain gates. Interface0x10006 and a
+separate `--motion24` GUI keep image/profile selection explicit. Bench results
+are in `bench/2026-11-10-d-axis-reciprocal-24v.json`.
+
 ## Validation
 
 - All **29 firmware images** build with Arm GNU 13.2.1 on Windows.

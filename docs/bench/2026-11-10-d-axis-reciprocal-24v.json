@@ -1,0 +1,165 @@
+{
+  "date_local": "2026-11-10",
+  "status": "Bounded and continuous24V6A D-axis motion completed; USER stop; user reports smoother; EVM OFF",
+  "target": "repo-current-motion-24v.elf",
+  "interface": "0x00010006",
+  "profile": {
+    "supply_V": 24,
+    "bus_arm_window_V": [
+      22,
+      26
+    ],
+    "phase_reference_A": 6,
+    "kp": 1,
+    "ki": 2500,
+    "voltage_vector_ceiling_V": 4,
+    "alignment_s": 1,
+    "leg_s": 2.5,
+    "commanded_rev_per_leg": 1,
+    "bounded_precheck_duration_s": 6,
+    "continuous_duration_setting": 0,
+    "filtered_trip_A": 7.5,
+    "raw_trip_A": 8,
+    "irq_trip_us": 45,
+    "USER_stop_ms": 20,
+    "saved_gain_requirement": "Exactly 1.0/2500 loaded from NV; disarmed apply, physical USER arm and fresh GUI start",
+    "rotor_feedback": false
+  },
+  "software_validation": {
+    "upstream": "23 tests/42 checks pass",
+    "tuning": "12 V, 24 V stationary and 24 V motion PI/mailbox/Recorder/NV/profile ASan/UBSan pass; bounded completion and two continuous cycles tested",
+    "firmware": "Full Arm build passes",
+    "GUI": "All five project modes retain 20 unique variables"
+  },
+  "hex_address_range": [
+    "0x8000000",
+    "0x8005627"
+  ],
+  "sha256": {
+    "repo-current-motion-24v.bin": "7796c513434bbde3c7a9839f460b364086c561b9b42d2749dd79e8e982c802e6",
+    "repo-current-motion-24v.elf": "2e41a659fd0dd9cee4abc49b0802c073da5f5b50db14ae97eb5a13ae14c1ce96",
+    "repo-current-motion-24v.hex": "504ddba2acf0e45edbb64e547c2b8da5b28ce4f4ebcdb846c519ae6cb5bf8dea"
+  },
+  "archive": "outputs/checkpoints/d-axis-reciprocal-24v-6a-2026-11-10",
+  "fresh_EVM_OFF_confirmation_received": true,
+  "bench_plan": "Flash image sectors0/1 only, preserve NV, verify disabled boot. User fixed24V/2A input, secured unloaded motor/Halls disconnected; bounded6s cycle first, inspect, then continuous until USER. SWD loss alone cannot stop continuous motion.",
+  "flashing": "Fresh EVM OFF confirmation; under-reset CubeProgrammer erased sectors0/1 only, download verified, software reset. Sector7 retained validated1/2500 record.",
+  "boot": {
+    "interface": "0x00010006",
+    "self_test": 1,
+    "state": 0,
+    "reason": 0,
+    "reference": 0,
+    "voltage": 0,
+    "kp": 1,
+    "ki": 2500,
+    "NV_status": 1,
+    "Recorder_fault": 0,
+    "Recorder_max_cycles": 516,
+    "CFSR": 0,
+    "HFSR": 0,
+    "ENABLE_INLs_MOE": "LOW"
+  },
+  "GUI": "current-loop-free-motion-24v.mcuv with exact archived ELF, live controls, acquisition STOP",
+  "powered_supply": {
+    "V": 24,
+    "input_limit_A": 2,
+    "preflight_mV": 23735,
+    "setup_confirmed": "Secured unloaded motor, Hall leads disconnected, physicalUSER arming"
+  },
+  "bounded": {
+    "analysis": {
+      "selected_points": 546,
+      "trace_points": 626,
+      "sampling_note": "100 Hz live trends, not 20 kHz synchronous Recorder",
+      "mean_A": 5.996931078754579,
+      "std_A": 0.024829236306856278,
+      "MAE_A": 0.019079239926739933,
+      "cross_peak_abs_A": 0.091047,
+      "voltage_peak_abs_V": 3.625117,
+      "sampled_saturation_points": 0,
+      "trace_run_duration_s": 5.950075
+    },
+    "final": {
+      "g_tune_state": 0.0,
+      "g_tune_reason": 9.0,
+      "g_tune_result": 0.0,
+      "g_tune_reference": 0.0,
+      "g_tune_measured": 6.002298355102539,
+      "g_tune_voltage": 0.0,
+      "g_tune_saturated": 0.0,
+      "g_tune_half_moves": 2.0,
+      "g_tune_command_mech_rev": 0.0
+    },
+    "capture": "outputs/tuning/24v-motion-bounded.json",
+    "post_diagnostics": {
+      "IRQ_max_cycles": 3252,
+      "Recorder_fault": 0,
+      "Recorder_max_cycles": 516,
+      "CFSR": 0,
+      "HFSR": 0,
+      "ENABLE_INLs_MOE": "LOW"
+    },
+    "user_observation": "Motion looked normal; USER re-armed forcontinuous"
+  },
+  "continuous": {
+    "analysis": {
+      "selected_points": 4535,
+      "trace_points": 10000,
+      "sampling_note": "100 Hz live trends, not 20 kHz synchronous Recorder",
+      "mean_A": 6.000270690187431,
+      "std_A": 0.023291215118193494,
+      "MAE_A": 0.017841945755237038,
+      "cross_peak_abs_A": 0.137809,
+      "voltage_peak_abs_V": 4.0,
+      "sampled_saturation_points": 3,
+      "trace_run_duration_s": 46.76018
+    },
+    "final": {
+      "g_tune_state": 0.0,
+      "g_tune_reason": 1.0,
+      "g_tune_result": 0.0,
+      "g_tune_reference": 0.0,
+      "g_tune_measured": 5.963047027587891,
+      "g_tune_voltage": 0.0,
+      "g_tune_half_moves": 18.0,
+      "g_tune_start_seq": 2.0,
+      "g_tune_stop_seq": 0.0
+    },
+    "user_observation": "Smoother than prior12V run; stopped withUSER",
+    "actual_shaft_position_or_speed_measured": false,
+    "capture": "outputs/tuning/24v-motion-continuous.json",
+    "host_monitor_issue": "HTTP404 from MCUViewer MCP session around32s; reconnect succeeded without reset/flash. FinalUSER stop verified after reconnect.",
+    "post_diagnostics": {
+      "state": 0,
+      "reason": 1,
+      "half_moves": 18,
+      "IRQ_max_cycles": 3277,
+      "Recorder_fault": 0,
+      "Recorder_max_cycles": 516,
+      "CFSR": 0,
+      "HFSR": 0,
+      "ENABLE_INLs_MOE": "LOW"
+    }
+  },
+  "host_issue_limit": "HTTP404 was from MCUViewer MCP; fresh initialize reconnected and retained GUI curves. No reset/flash, SWD recovered immediately for post-run readback. This differs from the earlier core-ID/SWD failure.",
+  "final_hardware": {
+    "EVM_supply": "User confirmed OFF after USER stop",
+    "state": 0,
+    "reason": 1,
+    "reference": 0,
+    "voltage": 0,
+    "NV_gains": [
+      1,
+      2500
+    ],
+    "ENABLE_INLs_MOE": "LOW",
+    "MCUViewer": "Live motion controls, acquisition STOP"
+  },
+  "plot": "outputs/tuning/24v-motion-continuous.png",
+  "validation_limits": "100Hz live/downsampled motion trends; three sampled saturation flags near4V ceiling. No20kHz motion or continuous raw protection-event capture. No rotor feedback: trajectory is commanded, smoother motion is user observation, actual shaft travel/speed unmeasured.",
+  "raw_archive": "docs/bench/current-tuning/24v-d-axis-motion-2026-11-10.zip",
+  "raw_archive_sha256": "319881af302bea6def8b76d79b6c1fd3920a52047e297fabc99c4168bf6bec31",
+  "source_base_commit": "7caf4c06573caae3174575517de2202f1c3bd6ef",
+  "source_checkpoint_tag": "checkpoint/d-axis-reciprocal-24v-6a-2026-11-10"
+}
