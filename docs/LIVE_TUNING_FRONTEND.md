@@ -1,8 +1,103 @@
 # MCUViewer FREE current-loop tuning
 
+## Hall observation with 24 V D-axis motion (2026-11-11)
+
+Current `repo-current-motion-24v.elf` uses interface0x1000E and enables
+internal3.3 V pull-ups on PB6/PB7/PB8. The manual `hall-bringup.elf` diagnostic
+also enables these pulls. Hall wiring and sensor5 V power must be checked
+before connection; see `HALL_SENSOR_SS41F_REVIEW.md`. Do not use5 V signal
+pull-ups with this configuration.
+
+Interface E is the user-requested8 µs internal OCP deglitch experiment:
+R5=`0x139`, first frame retained and two subsequent reads verified during zero-output arming and exposed through
+`g_repo_ocp_control`. Other profiles retain2 µs. It does not filter nFAULT-line
+noise; the prior already-HIGH IRQ policy is unchanged for this comparison.
+Matching ELF is under `outputs/checkpoints/ocp-deglitch-8us-24v-5a-2026-11-11`.
+See the latest handoff for current powered-test status; the completed ramp
+below used interface B with2 µs OCP qualification.
+
+Prepare the20-slot Hall view using
+`python tools/tuning/mcuviewer_project.py --hall24 --elf <matching flashed ELF>`.
+It saves `tools/tuning/current-loop-free-hall-24v.mcuv`, using
+`g_tune_hall_state` and `g_tune_command_mech_rev` in its two observation slots.
+Time traces show both signals, and an XY plot uses commanded revolutions on X
+and Hall code on Y. Actual shaft angle is not measured independently. Hall
+transition count is available through SWD. Voltage/saturation are in the live
+controls table; the current Recorder keeps its original five signals.
+State is the binary UVW code: PB6=U/4, PB7=V/2, PB8=W/1. For example state5
+means U=HIGH,V=LOW,W=HIGH. The100 Hz plot is a trend, not an edge timestamp.
+
+The observer samples at20 kHz even while disarmed and qualifies a state after
+three consecutive equal samples (100..150 us delay). Boot-lifetime diagnostics
+available through SWD include `g_tune_hall_raw`, `g_tune_hall_seen` (bitmask of
+qualified codes), `g_tune_hall_invalid` (entries into000/111, including initial
+state), `g_tune_hall_multibit` (qualified transitions changing multiple bits),
+and `g_tune_hall_period_ticks` (50 us units between qualified transitions;
+zero until the second transition). Hall values never steer or stop the drive.
+The five-signal current Recorder and all motor guards retain their roles;
+Hall sampling is included in the running45 us IRQ budget.
+
+Interface E additionally permits5 A duration0 continuous scope motion at3.2 V.
+1..4 A remain bounded only. Hold USER to stop; a viewer disconnect is not a stop.
+Matching E image is in the8us archive's `continuous-5a` subdirectory. See the
+latest handoff for live scope-session state.
+
+### Completed 1–5 A ramp with fixed fault handler
+
+All five bounded cycles passed at fixed24 V/3 A supply input and saved
+Kp1.0/Ki2500, six seconds per cycle with2.5 s legs. Every level completed
+two half moves and48 valid Hall changes; invalid/multibit counters stayed0.
+User reported normal motion and confirmed EVM OFF; outputs verified LOW.
+Viewer is STOP on `Hall and rotation capture`, a focused copy of the live
+group containing commanded-rotation time, Hall-state time and XY plots.
+The original controls and current Recorder groups remain available. The5 A
+curves are retained in memory; restarting acquisition can replace them.
+The project stores the view, while archived JSON/ZIP files preserve the data.
+
+Interface B accepts disarmed mode4/axis0/integer1..5 A/duration6 with voltage
+ceilings1/1.6/2.2/2.8/3.2 V, exact saved gains and fresh physical USER arming
+for each cycle. Filtered trips1.25*amplitude+0.25 A, raw trips another0.5 A.
+Already-inactive nFAULT edges are counted rather than treated as active faults;
+active-LOW and independent level checks remain. Counts per1..5 A cycle were
+0/38/27/1538/7300. Physical pulse origin still needs electrical diagnosis.
+See `bench/2026-11-11-current-ramp-fault-fix.md`, matching JSON, comparison PNG
+and raw ZIP under `bench/current-tuning/current-ramp-fixed-*`. Matching ELF:
+`outputs/checkpoints/current-ramp-fault-fix-24v-2026-11-11/repo-current-motion-24v.elf`.
+
+### Historical attempts before interface B
+
+First verify outputs LOW, GPIO input modes and pull-ups, saved1.0/2500 gains,
+then observe manual rotation while disarmed. With motor fully reassembled,
+secured and unloaded, repeat the prior fixed24 V/2 A input-limit setup, apply
+mode4/axis0/6 A/duration6/4 V ceiling after power settles while disarmed,
+then obtain physical USER arming for one bounded six-second cycle. This
+observation build is flashed and its zero-output boot/pull-up/NV checks passed.
+Manual test saw all six codes,30 transitions, invalid0/multibit0. The powered
+6 A attempt stopped on nFAULT/reason2 about1.515 s after start, adding six
+valid transitions. It did not finish the bounded cycle; reversal is unverified.
+Outputs were confirmed LOW and user switched EVM OFF. No retry/reset occurred;
+investigate nFAULT before repeating. See `bench/2026-11-11-hall-observation-24v.json`.
+The cleanup STOP changed the later displayed reason to9; do not mistake that
+for successful bounded completion. Earlier
+disconnected-Hall results below describe the previous interface0x10006 image.
+
+The user-requested5 A retry requires interface0x10008. Apply mode4/axis0/5 A/
+duration6/voltage limit3.2 V/Kp1/Ki2500 while disarmed. It has the same2.5 s legs
+and rejects continuous5 A; filtered/raw trips6.5/7 A. Build/host tests and flashed
+zero-output checks passed. At24 V/2 A input the5 A run stopped on nFAULT at
+1.546 s/0.081064 commanded rev, before reversal. The captured XY plot is set
+to commanded revolutions on X/Hall code on Y. The user requested a supply-limit
+comparison; after24 V/3 A setup and fresh USER arm, the same5 A settings stopped
+on nFAULT again at1.500 s/0.082528 commanded rev. Both selected-current means
+were approximately5 A without sampled saturation, and each run added six valid
+Hall transitions. The full cycle remains incomplete. Captures and report saved;
+viewer STOP with the3 A-input Hall-vs-command curve visible, EVM confirmed OFF.
+Increasing the supply limit did not prevent the fault; diagnose nFAULT before
+further powered cycles. See the latest handoff and5 A comparison report.
+
 ## 24 V D-axis motion repeat
 
-For the new-gain motion repeat use `repo-current-motion-24v.elf`, interface0x10006,
+The previously validated new-gain motion repeat used `repo-current-motion-24v.elf`, interface0x10006,
 with `python tools/tuning/mcuviewer_project.py --motion24 --elf <matching ELF>`.
 GUI: `tools/tuning/current-loop-free-motion-24v.mcuv`. Do not use the stationary
 24 V image for motion: its validator intentionally rejects mode4.

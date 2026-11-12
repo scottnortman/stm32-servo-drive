@@ -334,6 +334,23 @@ datasheet limits pin voltages and specifies ADC pins be configured in analog mod
 
 ## Hall connector reference (before any Hall power)
 
+2026-11-11 identification update: user reports all outputs HIGH and markings
+possibly `41F533`. Likely Honeywell SS41F: its4.5 V minimum makes EVM3.3 V
+insufficient if identification is correct. Proposed sensor5 V/open-collector
+signals pulled to3.3 V, direct STM32 routing and source verification are in
+[Hall review](HALL_SENSOR_SS41F_REVIEW.md). Do not feed5 V into J3-1.
+This is researched guidance; no successful powered Hall transition test yet.
+
+
+Power clarification, 2026-11-11: Scott found EVM supply power was disconnected;
+after restoring it, he reports Hall 3.3 V works. No Nucleo 3.3 V feed is needed.
+TI SLVUB79A section 2.1 (page 6) explicitly assigns Hall power to the EVM LDO.
+MD016A Rev A shows U3 LP2992 output through populated R36 to the common 3.3 V
+net, feeding J3-1, Hall pull-ups and J1-2. J1-2 supplies the original controller;
+it is not an incoming Hall-power feed. Keep the USB-powered Nucleo 3.3 V rail
+separate. This resolves the supply question, not motor Hall voltage-rating or
+output-switching compatibility; no new Hall transition test was reported.
+
 TI MD016A Rev A schematic shows five-position J3: pin 1=local 3.3 V,
 2=HALLA/U, 3=HALLB/V, 4=HALLC/W, 5=GND. Follow physical PCB labels/pin-1
 marking instead of assuming left/right orientation. The GEMS diagram identifies

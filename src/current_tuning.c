@@ -9,10 +9,18 @@ bool current_tuning_valid(const CurrentTuneConfig *p)
     for (unsigned i=0;i<9;++i) if (!isfinite(values[i])) return false;
     const bool voltage=p->mode==TUNE_VOLTAGE_STEP || p->mode==TUNE_VOLTAGE_CHIRP;
     const bool motion=p->mode==TUNE_D_RECIPROCAL;
+#ifdef REPO_MOTION_24V
+    const bool motion_3a=false;
+    const bool motion_5a=p->amplitude>=1.0f && p->amplitude<=5.0f &&
+        p->amplitude==(int)p->amplitude &&
+        (p->duration==6.0f || (p->amplitude==5.0f && p->duration==0.0f)) &&
+        p->voltage_limit<=tune_motion_voltage_ceiling(p->amplitude);
+#else
     const bool motion_3a=p->amplitude==3.0f && p->duration==41.0f &&
         p->voltage_limit<=2.5f;
     const bool motion_5a=p->amplitude==5.0f && p->duration==21.0f &&
         p->voltage_limit<=3.2f;
+#endif
     const bool motion_6a=p->amplitude==6.0f && (p->duration==0.0f
 #ifdef REPO_MOTION_24V
         || p->duration==6.0f // one bounded cycle before continuous bench use
@@ -22,7 +30,7 @@ bool current_tuning_valid(const CurrentTuneConfig *p)
 #ifdef REPO_TUNING_24V
     if(motion) {
 #ifdef REPO_MOTION_24V
-        if(!motion_6a) return false;
+        if(!motion_5a && !motion_6a) return false;
 #else
         return false; // stationary identification image stays isolated
 #endif
@@ -49,7 +57,7 @@ void current_tuning_init(CurrentTuning *s,const CurrentTuneConfig *p)
 void current_tuning_start(CurrentTuning *s)
 {
     const CurrentTuneConfig p=s->config; current_tuning_init(s,&p);
-    // Duration zero is reserved for the 6 A continuous reciprocal profile.
+    // Duration zero selects a validated continuous reciprocal profile.
     s->samples=p.mode==TUNE_D_RECIPROCAL && p.duration==0.0f ?
         (uint32_t)(6.0f/DT_CURRENT) : (uint32_t)(p.duration/DT_CURRENT);
     s->active=true;
@@ -63,7 +71,7 @@ float current_tuning_field_angle(CurrentTuning *s)
     if(s->prepared_sample==s->sample) return s->field_theta;
     // At the 2.5 s leg speed the field moves under 16 electrical rad/s.
     // Updating every 0.25 ms bounds its step below 0.004 electrical rad.
-    const uint32_t stride=s->config.amplitude==6.0f ? 5u : 10u;
+    const uint32_t stride=s->samples==120000u ? 5u : 10u;
     if(s->prepared_sample!=UINT32_MAX && s->sample<s->samples &&
        s->sample%stride!=0u) return s->field_theta;
     const uint32_t align=(uint32_t)(1.0f/DT_CURRENT);

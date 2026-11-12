@@ -3,7 +3,7 @@
 typedef struct { uint32_t CYCCNT; } TestDwt;
 extern TestDwt test_dwt;
 #define DWT (&test_dwt)
-typedef struct { uint32_t ODR; } TestGpio;
+typedef struct { uint32_t ODR,MODER,PUPDR,IDR; } TestGpio;
 typedef struct { uint32_t BDTR; } TestTim;
 extern TestGpio test_gpiob,test_gpioc;
 extern TestTim test_tim1;

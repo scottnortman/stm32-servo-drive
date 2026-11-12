@@ -9,6 +9,13 @@
 #endif
 #define TUNE_MOTION_KP 1.0f
 #define TUNE_MOTION_KI 2500.0f
+// Bounded diagnostic ramp, retaining the established 5 A / 3.2 V ceiling.
+static inline float tune_motion_voltage_ceiling(float amps)
+{ return amps<5.0f ? 0.6f*amps+0.4f : 3.2f; }
+static inline float tune_motion_filtered_trip(float amps)
+{ return amps<=5.0f ? 1.25f*amps+0.25f : 7.5f; }
+static inline float tune_motion_raw_trip(float amps)
+{ return tune_motion_filtered_trip(amps)+0.5f; }
 #else
 #define TUNE_MOTION_KP 0.8f
 #define TUNE_MOTION_KI 2000.0f

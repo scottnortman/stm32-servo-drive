@@ -12,6 +12,14 @@
 #define DRV8353_REG_CSA_CONTROL      0x06u
 #define DRV8353_REG_RESERVED_CAL     0x07u
 
+// SLVSDY6A Table17: latched OCP, 100ns dead time, 0.6V VDS threshold.
+// The 24V motion experiment uses 8us OCP qualification; other images retain 2us.
+#ifdef REPO_MOTION_24V
+#define DRV8353_CONFIG_OCP_CONTROL   0x0139u
+#else
+#define DRV8353_CONFIG_OCP_CONTROL   0x0119u
+#endif
+
 typedef struct
 {
     uint16_t fault_status_1;
@@ -36,3 +44,8 @@ void drv_enable_low(void);
 void drv_enable_high(void);
 bool drv8353_fault_pin_ok(void);
 bool drv8353_fault_pin_active(void);
+#ifdef REPO_MOTION_24V
+// Read R0 twice, then R1/R2 with a shared DWT deadline. Refuses unless all phase enables
+// and TIM1 MOE are LOW, ENABLE is HIGH, and SPI is idle. Never enables outputs.
+bool drv8353_fault_snapshot(uint16_t words[4],uint32_t max_cycles);
+#endif

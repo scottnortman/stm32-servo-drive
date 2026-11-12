@@ -51,7 +51,20 @@ def connect():
         pass
 
 
-def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
+def configure_hall_xy(path):
+    # MCP can create XY plots but cannot assign their X variable. Use the
+    # schema3 field written by MCUViewer's Plot Edit dialog, then reopen it.
+    project = json.loads(path.read_text(encoding="utf-8"))
+    plot = next(p for g in project["groups"] for p in g["plots"]
+                if p["name"] == "Hall state vs commanded rotation")
+    plot["x_axis"] = {"variable": "g_tune_command_mech_rev"}
+    plot["series"] = [{"variable": "g_tune_hall_state"}]
+    path.write_text(json.dumps(project, indent=2) + "\n", encoding="utf-8")
+
+
+def main(nv=False, elf=None, motion=False, bench24=False, motion24=False, hall24=False):
+    if hall24:
+        motion24 = True
     if motion24:
         motion = bench24 = True
     if nv and motion:
@@ -91,7 +104,10 @@ def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
     if nv:
         variables += [{"name": "g_tune_nv_" + name, "type": "u32"}
                       for name in ["save_seq", "status"]]
-    if motion:
+    if hall24:
+        variables += [{"name": "g_tune_hall_state", "type": "u32"},
+                      {"name": "g_tune_command_mech_rev", "type": "f32"}]
+    elif motion:
         variables += [{"name": "g_tune_command_mech_rev", "type": "f32"},
                       {"name": "g_tune_half_moves", "type": "u32"}]
     assert len(variables) == 20 and len(SIGNALS) == 5
@@ -103,17 +119,30 @@ def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
     tool("add_plot", group="Live current and controls", name="Current (A)")
     tool("add_variable_to_plot", group="Live current and controls", plot="Current (A)",
          variables=json.dumps(SIGNALS[:3]))
-    tool("add_plot", group="Live current and controls", name="Voltage (V) and saturation")
-    tool("add_variable_to_plot", group="Live current and controls", plot="Voltage (V) and saturation",
-         variables=json.dumps(SIGNALS[3:]))
-    if motion:
+    if not hall24:
+        tool("add_plot", group="Live current and controls", name="Voltage (V) and saturation")
+        tool("add_variable_to_plot", group="Live current and controls", plot="Voltage (V) and saturation",
+             variables=json.dumps(SIGNALS[3:]))
+    if hall24:
+        tool("add_plot", group="Live current and controls", name="Hall state (U=4 V=2 W=1)")
+        tool("add_variable_to_plot", group="Live current and controls",
+             plot="Hall state (U=4 V=2 W=1)", variables=json.dumps(["g_tune_hall_state"]))
+        tool("add_plot", group="Live current and controls", name="Commanded rotation (rev)")
+        tool("add_variable_to_plot", group="Live current and controls",
+             plot="Commanded rotation (rev)", variables=json.dumps(["g_tune_command_mech_rev"]))
+        tool("add_plot", group="Live current and controls", name="Hall state vs commanded rotation", type="xy")
+        tool("add_variable_to_plot", group="Live current and controls",
+             plot="Hall state vs commanded rotation",
+             variables=json.dumps(["g_tune_command_mech_rev", "g_tune_hall_state"]))
+    elif motion:
         tool("add_plot", group="Live current and controls", name="Commanded motion (revolutions)")
         tool("add_variable_to_plot", group="Live current and controls",
              plot="Commanded motion (revolutions)",
              variables=json.dumps(["g_tune_command_mech_rev"]))
     tool("add_plot", group="Live current and controls", name="Parameters and commands", type="table")
     tool("add_variable_to_plot", group="Live current and controls", plot="Parameters and commands",
-         variables=json.dumps([v["name"] for v in variables if v["name"] not in SIGNALS]))
+         variables=json.dumps([v["name"] for v in variables if v["name"] not in SIGNALS
+                               or (hall24 and v["name"] in SIGNALS[3:])]))
     tool("add_group", name="20 kHz current step - five signals", type="recorder")
     tool("add_plot", group="20 kHz current step - five signals", name="Step response (A)")
     tool("add_variable_to_plot", group="20 kHz current step - five signals", plot="Step response (A)",
@@ -127,7 +156,8 @@ def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
          pre_trigger_samples=200, enabled=1)
     tool("set_recorder_mode", mode="normal")
     tool("refresh_variable_addresses")
-    name = ("current-loop-free-motion-24v.mcuv" if motion24 else
+    name = ("current-loop-free-hall-24v.mcuv" if hall24 else
+            "current-loop-free-motion-24v.mcuv" if motion24 else
             "current-loop-free-24v.mcuv" if bench24 else
             "current-loop-free-motion.mcuv" if motion else
             "current-loop-free-nv.mcuv" if nv else "current-loop-free.mcuv")
@@ -137,6 +167,11 @@ def main(nv=False, elf=None, motion=False, bench24=False, motion24=False):
     if motion:
         tool("set_active_group", name="Live current and controls")
         tool("save_project")
+    if hall24:
+        path = ROOT / "tools/tuning" / name
+        configure_hall_xy(path)
+        tool("open_project", path=str(path))
+        tool("set_active_group", name="Live current and controls")
 
 
 if __name__ == "__main__":
@@ -149,7 +184,9 @@ if __name__ == "__main__":
                         help="20-slot 24V GEMS bandwidth view, fixed tones through 2kHz")
     parser.add_argument("--motion24",action="store_true",
                         help="24V D-axis motion with persisted1.0/2500 gains")
+    parser.add_argument("--hall24",action="store_true",
+                        help="24V motion: bounded1..5A, continuous5/6A, Hall vs commanded rotation (interface0x1000E, 8us OCP deglitch)")
     parser.add_argument("--elf",type=Path,
                         help="ELF matching the flashed image (default: build-bringup/repo-current-tuning.elf)")
     args=parser.parse_args()
-    main(args.nv,args.elf.resolve() if args.elf else None,args.motion,args.bench24,args.motion24)
+    main(args.nv,args.elf.resolve() if args.elf else None,args.motion,args.bench24,args.motion24,args.hall24)

@@ -311,6 +311,38 @@ uint16_t drv8353_read_reg(uint8_t addr)
     return drv8353_transfer16(tx) & DRV_DATA_MASK;
 }
 
+#ifdef REPO_MOTION_24V
+static bool fault_spi_wait(uint32_t mask,bool set,uint32_t start,uint32_t budget)
+{
+    while(((SPI1->SR & mask)!=0u)!=set)
+        if((uint32_t)(DWT->CYCCNT-start)>=budget) return false;
+    return (uint32_t)(DWT->CYCCNT-start)<budget;
+}
+bool drv8353_fault_snapshot(uint16_t words[4],uint32_t max_cycles)
+{
+    const uint32_t inls=(1u<<6)|(1u<<7)|(1u<<9);
+    if((GPIOC->ODR & inls)!=0u || (TIM1->BDTR & TIM_BDTR_MOE)!=0u ||
+       (GPIOB->ODR & 1u)==0u || (SPI1->CR1 & SPI_CR1_SPE)==0u ||
+       (SPI1->SR & SPI_SR_BSY)!=0u ||
+       (DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk)==0u || max_cycles==0u) return false;
+    const uint32_t start=DWT->CYCCNT;
+    if(SPI1->SR & SPI_SR_RXNE) {const volatile uint16_t stale=*(volatile uint16_t *)&SPI1->DR;(void)stale;}
+    for(uint32_t index=0u;index<4u;++index) {
+        const uint32_t reg=index==0u ? 0u : index-1u;
+        drv_cs_low();drv_delay_cycles(50);
+        if(!fault_spi_wait(SPI_SR_TXE,true,start,max_cycles)) goto failed;
+        *(volatile uint16_t *)&SPI1->DR=(uint16_t)(DRV_SPI_READ|(reg<<DRV_ADDR_SHIFT));
+        if(!fault_spi_wait(SPI_SR_RXNE,true,start,max_cycles)) goto failed;
+        words[index]=*(volatile uint16_t *)&SPI1->DR & DRV_DATA_MASK;
+        if(!fault_spi_wait(SPI_SR_BSY,false,start,max_cycles)) goto failed;
+        drv_delay_cycles(50);drv_cs_high();drv_delay_cycles(100);
+    }
+    return (uint32_t)(DWT->CYCCNT-start)<max_cycles;
+failed:
+    drv_cs_high();return false;
+}
+#endif
+
 uint16_t drv8353_write_reg(uint8_t addr, uint16_t data)
 {
     uint16_t tx;
@@ -457,7 +489,7 @@ bool drv8353_write_read_test(void)
 // Deliberate register configuration
 // =============================================================================
 //
-// Field encodings below are from the DRV8353 datasheet (SLVSDJ3) register
+// Field encodings below are from the DRV8353 datasheet (SLVSDY6A) register
 // tables. IDRIVE/VDS_LVL codes: VERIFY against your datasheet revision's
 // tables if the configuration is ever changed.
 //
@@ -465,7 +497,8 @@ bool drv8353_write_read_test(void)
 //   0x02  3x PWM mode (INHx = PWM, INLx = per-phase enable)
 //   0x03  unlocked, IDRIVE HS 150 mA source / 300 mA sink (EVM-mandated max)
 //   0x04  CBC on, TDRIVE 4000 ns, IDRIVE LS 150/300 mA
-//   0x05  latched OCP for bring-up, 100 ns dead time, VDS at default 0.75 V
+//   0x05  latched OCP, 100 ns dead time, VDS 0.6 V; OCP deglitch 2 us,
+//         or 8 us for the dedicated REPO_MOTION_24V experiment.
 //         (50/100/400 ns all gave the same ripple in the foc-sysid
 //         RIPPLE_DEBUG dead-time sweep — back to the original default)
 //   0x06  bidirectional CSA, GAIN = 40 V/V  <-- i_q scaling referenceƒ
@@ -478,7 +511,7 @@ bool drv8353_write_read_test(void)
 #define DRV_CFG_DRIVER_CONTROL   0x0020u  // PWM_MODE=01 (3x), all else 0
 #define DRV_CFG_GATE_DRIVE_HS    0x0333u  // LOCK=011, IDRIVEP=0011(150mA), IDRIVEN=0011(300mA)
 #define DRV_CFG_GATE_DRIVE_LS    0x0733u  // CBC=1, TDRIVE=11(4000ns), 150/300mA
-#define DRV_CFG_OCP_CONTROL      0x0119u  // TRETRY=0, DEAD_TIME=01(100ns), OCP_MODE=00(latched), OCP_DEG=01(4us), VDS_LVL=1001(0.75V)
+#define DRV_CFG_OCP_CONTROL      DRV8353_CONFIG_OCP_CONTROL
 #define DRV_CFG_CSA_CONTROL      0x02C3u  // VREF_DIV=1, CSA_GAIN=11(40V/V), SEN_LVL=11
 
 bool drv8353_configure(void)

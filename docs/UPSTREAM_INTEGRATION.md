@@ -50,6 +50,30 @@ and12 V images retain their validators and gain gates. Interface0x10006 and a
 separate `--motion24` GUI keep image/profile selection explicit. Bench results
 are in `bench/2026-11-10-d-axis-reciprocal-24v.json`.
 
+The current Hall observation/fault diagnostic revision uses interface0x1000E.
+The user-requested8 µs OCP experiment selects R5=0x139 only for this motion
+target; other profiles retain0x119 (2 µs). Zero-output arming reads the OCP
+register twice and requires the configured value. The B-image ramp results
+below preceded this change. E also permits continuous5 A at3.2 V;1..4 A remain
+bounded only. Both continuous scope trials ended by USER, with EVM OFF. Scope
+ground EVM-to-STM32 change coincided with297616IRQ/147s becoming4IRQ/96s;
+electrical cause remains unresolved. See the handoff and8us bench report.
+It also accepts integer1..5 A six-second profiles, ceilings1/1.6/2.2/2.8/3.2 V,
+filtered trips1.25*amplitude+0.25 A and raw trips another0.5 A. It keeps2.5 s
+legs and persisted1.0/2500 gate; continuous1..4 A is rejected;5 A duration0 is allowed. Hall inputs have
+internal3.3 V pull-ups on PB6/7/8; observation is confined to this motion target
+and the manual Hall diagnostic, without controller feedback. PB1 fault routing
+and its EVM external pull-up are unchanged.
+
+The motion-only IRQ now acknowledges/counts a pending edge when nFAULT is
+already HIGH at ISR entry. Active-LOW IRQ and independent level shutdown remain;
+the boot-only software fault test is preserved. Diagnostic status is read with
+phases disabled and a bounded timeout before ENABLE is lowered. All1–5 A
+hardware cycles passed at24 V/3 A input,48 valid Hall transitions each; user
+confirmed normal motion and EVM OFF. Inactive nFAULT pulses persist, reaching
+7300 at5 A; their electrical origin remains unresolved. See
+`bench/2026-11-11-current-ramp-fault-fix.md` for evidence and limitations.
+
 ## Validation
 
 - All **29 firmware images** build with Arm GNU 13.2.1 on Windows.

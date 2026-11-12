@@ -8,6 +8,9 @@
 #include "current_feedback.h"
 #include "config.h"
 #include "repo_motor_profile.h"
+#ifdef REPO_MOTION_24V
+#include "hall_inputs.h"
+#endif
 #ifdef REPO_CURRENT_TUNING
 #include "repo_tune_link.h"
 #endif
@@ -34,6 +37,16 @@ static volatile bool running;
 volatile uint32_t g_repo_self_test,g_repo_control_ticks,g_repo_irq_max_cycles;
 volatile uint32_t g_repo_timer_events,g_repo_fault_irq_seen;
 volatile uint32_t g_repo_bus_mv;
+#ifdef REPO_MOTION_24V
+volatile uint32_t g_repo_fault_r0,g_repo_fault_r1,g_repo_fault_r2;
+volatile uint32_t g_repo_fault_r0_first,g_repo_fault_irq_gpio_b;
+volatile uint32_t g_repo_fault_irq_rejected;
+static volatile bool boot_fault_test;
+volatile uint32_t g_repo_fault_capture_status,g_repo_fault_capture_cycles,g_repo_fault_capture_count;
+volatile uint32_t g_repo_fault_spi_check,g_repo_fault_gpio_b,g_repo_fault_at_tick;
+volatile uint32_t g_repo_ocp_control;
+volatile uint32_t g_repo_ocp_first,g_repo_ocp_verify_first;
+#endif
 volatile float g_repo_theta,g_repo_voltage,g_repo_phase_amps[3];
 #ifdef REPO_CURRENT_5000MA
 volatile uint32_t g_repo_csa_control;
@@ -53,8 +66,28 @@ volatile uint32_t g_repo_electrical_turns;
 static void stop_drive(uint32_t why)
 {
     const uint32_t mask=__get_PRIMASK(); __disable_irq();
+#ifdef REPO_MOTION_24V
+    const bool capture=why==FAULT_STOP && running && reason==0u &&
+        (GPIOB->ODR & 1u)!=0u && (TIM1->BDTR & TIM_BDTR_MOE)!=0u;
+    // 3PWM INL=0 makes every half-bridge Hi-Z (TI Table2). Remove the drive
+    // BEFORE any diagnostic SPI. Keep ENABLE awake only for the bounded read,
+    // then lower it on success or timeout; every other stop lowers it at once.
+    GPIOC->BSRR=(uint32_t)INLS<<16;pwm_disable();running=false;
+    if(capture) {
+        g_repo_fault_gpio_b=GPIOB->IDR;g_repo_fault_at_tick=g_repo_timer_events;
+        uint16_t status[4]={0xffffu,0xffffu,0xffffu,0xffffu};
+        const uint32_t began=DWT->CYCCNT;
+        const bool ok=drv8353_fault_snapshot(status,30000u); //300 us budget at100MHz
+        drv_enable_low();
+        g_repo_fault_capture_cycles=DWT->CYCCNT-began;
+        g_repo_fault_r0_first=status[0];g_repo_fault_r0=status[1];
+        g_repo_fault_r1=status[2];g_repo_fault_r2=status[3];
+        g_repo_fault_capture_status=ok ? 1u : 2u;++g_repo_fault_capture_count;
+    } else drv_enable_low();
+#else
     drv_enable_low(); GPIOC->BSRR=(uint32_t)INLS<<16; pwm_disable();
     running=false;
+#endif
 #ifdef REPO_CURRENT_TUNING
     repo_tune_disarm();
 #endif
@@ -95,7 +128,22 @@ static void button(bool pressed)
 }
 
 void EXTI1_IRQHandler(void)
-{ if (EXTI->PR & 2u) { ++g_repo_fault_irq_seen; stop_drive(FAULT_STOP); EXTI->PR=2u; } }
+{ if (EXTI->PR & 2u) {
+#ifdef REPO_MOTION_24V
+    g_repo_fault_irq_gpio_b=GPIOB->IDR;
+#endif
+    ++g_repo_fault_irq_seen;
+#ifdef REPO_MOTION_24V
+    // A pending falling edge can outlive a short pulse. The DRV's configured
+    // latched faults keep nFAULT LOW until reset/clear. Do not turn an already
+    // inactive edge into a motor stop. LOW still takes the immediate stop path;
+    // SysTick also retains its independent active-LOW fault level check.
+    if(!boot_fault_test && (g_repo_fault_irq_gpio_b & 2u)!=0u) {
+        ++g_repo_fault_irq_rejected;EXTI->PR=2u;return;
+    }
+#endif
+    stop_drive(FAULT_STOP); EXTI->PR=2u;
+} }
 
 // Vector adapter adds only the board's raw-current shutdown. The original
 // current_feedback.c ADC_IRQHandler still owns injected acquisition/filtering.
@@ -130,13 +178,16 @@ void TIM1_UP_TIM10_IRQHandler(void)
 {
     TIM1->SR=~TIM_SR_UIF;
     ++g_repo_timer_events;
+    const uint32_t cycle=DWT->CYCCNT;
+#ifdef REPO_MOTION_24V
+    repo_tune_hall_tick(); // Also observe hand rotation while disarmed.
+#endif
     if (!running) {
 #ifdef REPO_MCUVIEWER
         repo_tune_recorder_tick();
 #endif
         return;
     }
-    const uint32_t cycle=DWT->CYCCNT;
     if (!current_feedback_sample_valid()) { stop_drive(ADC_STOP); return; }
     float amps[3];
     current_feedback_get_phase_amps(&amps[0],&amps[1],&amps[2]);
@@ -144,7 +195,8 @@ void TIM1_UP_TIM10_IRQHandler(void)
     // Motion profiles tighten the 6.25 A-capable tuning target's phase trips.
     // The ADC watchdog threshold is selected at physical arming.
 #ifdef REPO_MOTION_24V
-    const float phase_trip=repo_tune_d_reciprocal_selected() ? 7.5f : 1.0f;
+    const float phase_trip=repo_tune_d_reciprocal_selected() ?
+        tune_motion_filtered_trip(repo_tune_motion_amplitude()) : 1.0f;
 #elif defined(REPO_TUNING_24V)
     const float phase_trip=1.0f;
 #else
@@ -296,6 +348,9 @@ int main(void)
     const uint32_t inl_modes=(3u<<12)|(3u<<14)|(3u<<18);
     GPIOC->MODER=(GPIOC->MODER & ~inl_modes)|(1u<<12)|(1u<<14)|(1u<<18);
     GPIOC->MODER&=~(3u<<26); GPIOC->PUPDR=(GPIOC->PUPDR & ~(3u<<26))|(1u<<26);
+#ifdef REPO_MOTION_24V
+    hall_inputs_init();
+#endif
     // Board-only VSENVM input: PA4/CN7-32 <- EVM J1-4. Current ADC module owns PC0/1/2.
     GPIOA->MODER|=3u<<8;
     GPIOA->PUPDR&=~(3u<<8);
@@ -357,9 +412,15 @@ int main(void)
     wait_ms(20u);
     // Prove the board's shutdown vector with zero output and ENABLE already LOW.
     const uint32_t boot_mask=__get_PRIMASK(); __disable_irq();
+#ifdef REPO_MOTION_24V
+    boot_fault_test=true; // Software IRQ test only, with every output disabled.
+#endif
     running=true; EXTI->PR=2u; EXTI->IMR|=2u; EXTI->SWIER|=2u;
     __set_PRIMASK(boot_mask);
     wait_ms(1u); EXTI->IMR&=~2u; running=false;
+#ifdef REPO_MOTION_24V
+    boot_fault_test=false;
+#endif
     const bool fault_irq_ok=reason==FAULT_STOP && g_repo_fault_irq_seen==1u;
     reason=0u;
     if (!fault_irq_ok || current_feedback_sample_count()<10u || g_repo_timer_events<10u ||
@@ -378,6 +439,10 @@ int main(void)
 #endif
 #ifdef REPO_MCUVIEWER
         || !recorder_ok
+#endif
+#ifdef REPO_MOTION_24V
+        || (GPIOB->MODER & HALL_GPIO_MASK)!=0u
+        || (GPIOB->PUPDR & HALL_GPIO_MASK)!=HALL_GPIO_PULLUPS
 #endif
 #ifdef REPO_RECIPROCAL
         || !reciprocal_math_ok
@@ -417,13 +482,13 @@ int main(void)
     uart_text("Default D-axis0.5A step,1s test,0.75V ceiling. Gains are starting values.\r\n");
     uart_text("USER arms at ZERO output. Apply settings then increment START in MCUViewer.\r\n");
 #ifdef REPO_MOTION_24V
-    uart_text("24V D-axis motion:6A,2.5s/leg,4V ceiling,NV gains1/2500.6s check or continuous until USER.\r\n");
+    uart_text("24V D-axis motion:bounded1..5A ramp,6s,2.5s/leg;6A profile retained;NV gains1/2500.\r\n");
     uart_text("Stationary tests retain0.5A/2V limits.USER/stop/fault disarms; re-arm with USER.\r\n");
 #elif defined(REPO_TUNING_24V)
     uart_text("24V stationary tuning only:0.5A reference,0.1V voltage step,2V vector ceiling,2kHz tones.No motion.\r\n");
     uart_text("Bounded tests auto-stop. USER/stop/fault disarms; re-arm with USER.\r\n");
 #else
-    uart_text("Bounded tests auto-stop; 6A motion repeats until USER/stop/fault. Re-arm with USER.\r\n");
+    uart_text("Bounded tests auto-stop; 5A/6A duration0 repeats until USER/stop/fault. Re-arm with USER.\r\n");
 #endif
 #elif defined(REPO_RECIPROCAL)
 #ifdef REPO_RECIP_QUAD_SPEED
@@ -456,7 +521,7 @@ int main(void)
 #endif
 #ifdef REPO_MCUVIEWER
 #ifdef REPO_MOTION_24V
-    uart_text("Motion:7.5A filtered/8A raw trips.Stationary:1A/1.5A.USER20ms,nFAULT,ADC,45us IRQ guards.\r\n");
+    uart_text("Motion trips scale with requested current;1A:1.5/2A,5A:6.5/7A. USER,nFAULT,ADC,45us guards.\r\n");
 #elif defined(REPO_TUNING_24V)
     uart_text("1A filtered/1.5A sampled raw trips; USER20ms,nFAULT,ADC guards retained.\r\n");
 #else
@@ -479,7 +544,7 @@ int main(void)
 #endif
 #ifdef REPO_MCUVIEWER
 #ifdef REPO_MOTION_24V
-    uart_text("Secure unloaded motor.24V fixed/2A input limit for6A motion.Halls disconnected.\r\n");
+    uart_text("Secure unloaded motor.24V fixed/2A input limit.Halls observed on PB6/7/8 with3.3V internal pulls.\r\n");
 #elif defined(REPO_TUNING_24V)
     uart_text("Secure unloaded motor.24V fixed/0.25A input limit for INITIAL0.5A test.Halls disconnected.\r\n");
 #else
@@ -528,8 +593,29 @@ arm_again:
 #else
     if (!check_bus()) { report(); while (1) { __WFI(); } }
 #endif
+#ifdef REPO_MOTION_24V
+    g_repo_ocp_first=0u;g_repo_ocp_verify_first=0u;g_repo_ocp_control=0u;
+    g_repo_fault_spi_check=0u;
+#endif
     drv8353_init();
     if (!drv8353_configure() || !drv8353_fault_pin_ok()) { stop_drive(CONFIG_STOP); }
+#ifdef REPO_MOTION_24V
+    if(reason==0u) {
+        uint16_t status[4]={0};
+        const bool ok=drv8353_fault_snapshot(status,30000u);
+        g_repo_fault_spi_check=ok && status[0]==0u && status[1]==0u && status[2]==0u && status[3]==0x20u;
+        if(!g_repo_fault_spi_check) stop_drive(CONFIG_STOP);
+        else {
+            // This board can return a stale first frame after changing address.
+            // Retain that frame for diagnosis, then require two matching reads.
+            g_repo_ocp_first=drv8353_read_reg(DRV8353_REG_OCP_CONTROL);
+            g_repo_ocp_verify_first=drv8353_read_reg(DRV8353_REG_OCP_CONTROL);
+            g_repo_ocp_control=drv8353_read_reg(DRV8353_REG_OCP_CONTROL);
+            if(g_repo_ocp_verify_first!=DRV8353_CONFIG_OCP_CONTROL || g_repo_ocp_control!=DRV8353_CONFIG_OCP_CONTROL)
+                stop_drive(CONFIG_STOP);
+        }
+    }
+#endif
 #ifdef REPO_CURRENT_5000MA
     // Board range selection only. Original driver config is verified first;
     // all INLs and PWM remain disabled through this change and fresh zeros.
@@ -571,7 +657,8 @@ arm_again:
         { if (adc_offset[c]<low) { low=adc_offset[c]; } if (adc_offset[c]>high) { high=adc_offset[c]; } }
 #ifdef REPO_CURRENT_TUNING
 #ifdef REPO_MOTION_24V
-        const float raw_trip_a=repo_tune_d_reciprocal_selected() ? 8.0f : 1.5f;
+    const float raw_trip_a=repo_tune_d_reciprocal_selected() ?
+        tune_motion_raw_trip(repo_tune_motion_amplitude()) : 1.5f;
 #elif defined(REPO_TUNING_24V)
         const float raw_trip_a=1.5f;
 #else

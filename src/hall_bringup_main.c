@@ -3,6 +3,7 @@
 // Hall electrical compatibility must be established before powering the sensors.
 #include "clock.h"
 #include "stm32f4xx.h"
+#include "hall_inputs.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -43,10 +44,7 @@ static void safe_gpio_init(void)
     GPIOC->PUPDR &= ~((3u << 0) | (3u << 2) | (3u << 4));
     GPIOA->MODER |= 3u << 8;
     GPIOA->PUPDR &= ~(3u << 8);
-    // PB6/PB7/PB8 use external EVM Hall pull-ups; no internal pulls.
-    const uint32_t hall_modes = (3u << 12) | (3u << 14) | (3u << 16);
-    GPIOB->MODER &= ~hall_modes;
-    GPIOB->PUPDR &= ~hall_modes;
+    hall_inputs_init();
     // MB1136 C04: PC13 USER is released HIGH, pressed LOW.
     GPIOC->MODER &= ~(3u << 26);
     GPIOC->PUPDR &= ~(3u << 26);
@@ -94,9 +92,7 @@ static void put_state(uint8_t state)
 
 static uint8_t hall_read(void)
 {
-    const uint32_t pins = GPIOB->IDR;  // One snapshot for all three inputs.
-    return (uint8_t)((((pins >> 6) & 1u) << 2) |
-                     (((pins >> 7) & 1u) << 1) | ((pins >> 8) & 1u));
+    return (uint8_t)hall_inputs_read();
 }
 
 static bool invalid_120deg(uint8_t state)
@@ -146,7 +142,7 @@ int main(void)
     puts_uart("\r\nDiagnostic: manual Hall reader v1; ENABLE permanently LOW\r\n");
     puts_uart("No PWM, SPI writes or motor control. Keep motor phase leads disconnected.\r\n");
     puts_uart("Do not power Hall wiring until its supply/output ratings are verified.\r\n");
-    puts_uart("U=PB6 CN10-17; V=PB7 CN7-21; W=PB8 CN10-3; no internal pull-ups.\r\n");
+    puts_uart("U=PB6 CN10-17; V=PB7 CN7-21; W=PB8 CN10-3; internal 3.3V pull-ups ON.\r\n");
     puts_uart("UVW is U-bit2/V-bit1/W-bit0; 000/111 flagged for 120-degree Halls.\r\n");
     puts_uart("5ms stable-state filter: turn slowly by hand; counts may miss fast edges.\r\n");
     puts_uart("After approved Hall power/wiring, press/release USER to observe for 120s.\r\n");

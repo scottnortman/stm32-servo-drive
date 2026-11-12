@@ -1,0 +1,240 @@
+{
+  "date_local": "2026-11-11",
+  "status": "Both5A attempts at2A and3A supply input stopped on nFAULT near0.082commandedrev; full cycle incomplete; EVM OFF",
+  "target": "repo-current-motion-24v.elf",
+  "interface": "0x10008",
+  "archive": "outputs/checkpoints/hall-rotation-24v-5a-2026-11-11",
+  "hex_sha256": "2552d2d7ecd60ce555183423e93a57ffda127182f182516072aea9c0f6892e26",
+  "software_validation": "Upstream23tests42checks and tuning ASanUBSan pass; fullARM build passes;5A bounds/tracking/completion/mailbox coverage",
+  "configuration": {
+    "V_bus": 24,
+    "input_limit_A": 2,
+    "mode": 4,
+    "axis": 0,
+    "amplitude_A": 5,
+    "kp": 1,
+    "ki": 2500,
+    "voltage_ceiling_V": 3.2,
+    "duration_s": 6,
+    "leg_s": 2.5,
+    "filtered_trip_A": 6.5,
+    "raw_trip_A": 7
+  },
+  "preflight": {
+    "g_repo_bus_mv": 23784,
+    "g_tune_state": 1,
+    "g_tune_reason": 0,
+    "g_tune_recorder_fault": 0,
+    "g_repo_fault_irq_seen": 1,
+    "g_tune_hall_changes": 0,
+    "g_tune_hall_seen": 32,
+    "g_tune_hall_invalid": 0,
+    "g_tune_hall_multibit": 0,
+    "g_repo_irq_max_cycles": 1430
+  },
+  "metrics": {
+    "first_host_stop_elapsed_s": 1.5460000000020955,
+    "reason": 2,
+    "completed_cycle": false,
+    "commanded_rev_at_stop": 0.08106440305709839,
+    "mean_selected_current_A": 4.998497429906542,
+    "current_MAE_A": 0.015282682242990642,
+    "current_sampled_peak_A": 5.045567,
+    "voltage_abs_peak_V": 3.003449,
+    "cross_current_abs_peak_A": 0.051237,
+    "saturated_trend_samples": 0,
+    "selected_samples": 107,
+    "hall_changes": 6,
+    "hall_seen_mask": "0x74",
+    "hall_invalid": 0,
+    "hall_multibit": 0,
+    "fault_irq_delta": 1,
+    "irq_max_us": 29.34,
+    "recorder_fault": 0,
+    "recorder_max_cycles": 512,
+    "outputs": "ENABLE/INLs/MOE LOW",
+    "CPU_faults": "CFSR/HFSR0",
+    "final_EVM_power": "OFF user-confirmed",
+    "rotation_note": "Open-loop commanded mechanical revolutions using4 pole pairs; not independently measured shaft angle.",
+    "Hall_sequence_100Hz": [
+      {
+        "time_s": 0.044636,
+        "commanded_rev": 0.0,
+        "hall_state": 5.0
+      },
+      {
+        "time_s": 21.507251,
+        "commanded_rev": 0.0,
+        "hall_state": 4.0
+      },
+      {
+        "time_s": 21.517165,
+        "commanded_rev": 0.0,
+        "hall_state": 6.0
+      },
+      {
+        "time_s": 21.527294,
+        "commanded_rev": 0.0,
+        "hall_state": 2.0
+      },
+      {
+        "time_s": 21.536837,
+        "commanded_rev": 0.0,
+        "hall_state": 6.0
+      },
+      {
+        "time_s": 22.666876,
+        "commanded_rev": 0.024911,
+        "hall_state": 4.0
+      },
+      {
+        "time_s": 22.826913,
+        "commanded_rev": 0.066074,
+        "hall_state": 5.0
+      }
+    ]
+  },
+  "post_fault": {
+    "g_tune_state": 0,
+    "g_tune_reason": 2,
+    "g_tune_result": 0,
+    "g_tune_hall_state": 5,
+    "g_tune_hall_raw": 5,
+    "g_tune_hall_changes": 6,
+    "g_tune_hall_seen": 116,
+    "g_tune_hall_invalid": 0,
+    "g_tune_hall_multibit": 0,
+    "g_repo_fault_irq_seen": 2,
+    "g_repo_irq_max_cycles": 2934,
+    "g_tune_recorder_fault": 0,
+    "g_tune_recorder_max_cycles": 512,
+    "g_tune_half_moves": 0,
+    "registers": {
+      "0x40020400": "0x281",
+      "0x40020404": "0x0",
+      "0x40020408": "0xc3",
+      "0x4002040c": "0x15100",
+      "0x40020410": "0x15a",
+      "0x40020414": "0x0",
+      "0x40020814": "0x100",
+      "0x40010044": "0x0",
+      "0xe000ed28": "0x0",
+      "0xe000ed2c": "0x0"
+    },
+    "timestamp": "2026-11-11T21:01:00.851880+00:00"
+  },
+  "viewer": "STOP on Hall live group with XY x=commanded mechanical revolutions,y=Hall code; capture remains visible.",
+  "limitations": "nFAULT underlying status not captured before existing ENABLE-low shutdown clears the DRV registers. No full out/back or Hall reversal validation. No additional retry/reset after this run.",
+  "tool_recovery": "MCUViewer1.4 access violation during earlier modal/project reload; restarted app without MCU reset; recovered project before arming/start.",
+  "comparison_prior_6A_commanded_rev_at_stop": 0.08192393183708191,
+  "supply_3A_comparison": {
+    "status": "Completed attempt, faulted; EVM OFF",
+    "settings_unchanged": true,
+    "supply_V": 24,
+    "input_limit_A": 3,
+    "metrics": {
+      "input_limit_A": 3,
+      "host_stop_elapsed_s": 1.5,
+      "reason": 2,
+      "completed_cycle": false,
+      "commanded_rev_at_stop": 0.08252805471420288,
+      "mean_selected_current_A": 5.001580875,
+      "current_MAE_A": 0.017808437499999996,
+      "current_trend_peak_A": 5.076546,
+      "voltage_abs_peak_V": 2.997745,
+      "cross_current_abs_peak_A": 0.085555,
+      "saturated_trend_samples": 0,
+      "selected_samples": 96,
+      "hall_change_delta": 6,
+      "hall_invalid_delta": 0,
+      "hall_multibit_delta": 0,
+      "fault_irq_delta": 1,
+      "irq_max_us": 29.34,
+      "recorder_fault": 0,
+      "recorder_max_cycles": 512,
+      "final_outputs": "ENABLE/INLs/MOE LOW",
+      "final_EVM_power": "OFF user-confirmed",
+      "Hall_sequence_100Hz": [
+        {
+          "time_s": 0.044643,
+          "commanded_rev": 0.0,
+          "hall_state": 5.0
+        },
+        {
+          "time_s": 21.146876,
+          "commanded_rev": 0.0,
+          "hall_state": 4.0
+        },
+        {
+          "time_s": 21.157318,
+          "commanded_rev": 0.0,
+          "hall_state": 6.0
+        },
+        {
+          "time_s": 21.166875,
+          "commanded_rev": 0.0,
+          "hall_state": 2.0
+        },
+        {
+          "time_s": 21.177179,
+          "commanded_rev": 0.0,
+          "hall_state": 6.0
+        },
+        {
+          "time_s": 22.306842,
+          "commanded_rev": 0.024862,
+          "hall_state": 4.0
+        },
+        {
+          "time_s": 22.466849,
+          "commanded_rev": 0.065918,
+          "hall_state": 5.0
+        }
+      ]
+    },
+    "preflight": {
+      "g_repo_bus_mv": 23783,
+      "g_tune_state": 1,
+      "g_tune_reason": 0,
+      "g_tune_recorder_fault": 0,
+      "g_repo_fault_irq_seen": 7,
+      "g_tune_hall_changes": 6,
+      "g_tune_hall_seen": 116,
+      "g_tune_hall_invalid": 0,
+      "g_tune_hall_multibit": 0,
+      "g_repo_irq_max_cycles": 2934
+    },
+    "post_fault": {
+      "g_tune_state": 0,
+      "g_tune_reason": 2,
+      "g_tune_result": 0,
+      "g_tune_hall_state": 5,
+      "g_tune_hall_raw": 5,
+      "g_tune_hall_changes": 12,
+      "g_tune_hall_seen": 116,
+      "g_tune_hall_invalid": 0,
+      "g_tune_hall_multibit": 0,
+      "g_repo_fault_irq_seen": 8,
+      "g_repo_irq_max_cycles": 2934,
+      "g_tune_recorder_fault": 0,
+      "g_tune_recorder_max_cycles": 512,
+      "g_tune_half_moves": 0,
+      "registers": {
+        "0x40020400": "0x281",
+        "0x40020404": "0x0",
+        "0x40020408": "0xc3",
+        "0x4002040c": "0x15100",
+        "0x40020410": "0x15a",
+        "0x40020414": "0x0",
+        "0x40020814": "0x100",
+        "0x40010044": "0x0",
+        "0xe000ed28": "0x0",
+        "0xe000ed2c": "0x0"
+      },
+      "timestamp": "2026-11-11T21:18:13.183609+00:00"
+    },
+    "archive_subdirectory": "supply-3a"
+  },
+  "comparison_inference": "Raising input limit2A->3A did not prevent nFAULT, which repeated near the same commanded angle. This does not by itself rule out a transient bus dip; bus voltage was measured only before motion.",
+  "next_step": "Identify nFAULT source before further powered cycles; no guard bypasses or additional retries."
+}

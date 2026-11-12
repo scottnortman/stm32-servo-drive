@@ -1,6 +1,7 @@
 // Integration contract: upstream AKM defaults must not leak into the GEMS bench.
 #include "config.h"
 #include "board_f411.h"
+#include "drv8353.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -10,6 +11,13 @@
 #endif
 int main(void)
 {
+    // Protection mode/threshold stay fixed while only motion24 gets 8us deglitch.
+    assert((DRV8353_CONFIG_OCP_CONTROL & 0x7cfu)==0x109u);
+#ifdef REPO_MOTION_24V
+    assert(((DRV8353_CONFIG_OCP_CONTROL>>4)&3u)==3u);
+#else
+    assert(((DRV8353_CONFIG_OCP_CONTROL>>4)&3u)==1u);
+#endif
     assert(fabsf(DT_CURRENT - 50e-6f) < 1e-10f);
     assert(PIN_PWM_A == 8 && PIN_PWM_B == 9 && PIN_PWM_C == 10);
 #ifdef REPO_MOTOR_BENCH

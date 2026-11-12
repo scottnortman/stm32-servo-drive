@@ -15,3 +15,9 @@ extern volatile uint32_t g_tune_saturated, g_tune_state, g_tune_reason, g_tune_r
 extern volatile uint32_t g_tune_recorder_max_cycles, g_tune_recorder_fault;
 void repo_tune_recorder_tick(void);
 bool repo_tune_recorder_self_test(void);
+#ifdef REPO_MOTION_24V
+extern volatile uint32_t g_tune_hall_raw,g_tune_hall_state,g_tune_hall_changes;
+extern volatile uint32_t g_tune_hall_seen,g_tune_hall_invalid,g_tune_hall_multibit;
+extern volatile uint32_t g_tune_hall_period_ticks;
+void repo_tune_hall_tick(void);
+#endif

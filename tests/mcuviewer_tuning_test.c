@@ -7,6 +7,37 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef REPO_MOTION_24V
+#include "hall_inputs.h"
+static void hall_sample(uint32_t state,unsigned count)
+{
+    test_gpiob.IDR=((state>>2)&1u)<<6 | ((state>>1)&1u)<<7 | (state&1u)<<8;
+    while(count--) repo_tune_hall_tick();
+}
+static void hall_test(void)
+{
+    test_gpiob.MODER=0xa5a5a5a5u;test_gpiob.PUPDR=0x5a5a5a5au;
+    hall_inputs_init();
+    assert(test_gpiob.MODER==(0xa5a5a5a5u & ~HALL_GPIO_MASK));
+    assert(test_gpiob.PUPDR==((0x5a5a5a5au & ~HALL_GPIO_MASK)|HALL_GPIO_PULLUPS));
+    hall_sample(1,3);
+    assert(g_tune_hall_state==1 && g_tune_hall_changes==0);
+    hall_sample(7,1); // A brief noise pulse must not become a qualified state.
+    assert(g_tune_hall_raw==7 && g_tune_hall_state==1);
+    hall_sample(1,3);assert(g_tune_hall_invalid==0);
+    const uint32_t sequence[]={5,4,6,2,3,1,3,2,6,4,5,1};
+    for(unsigned n=0;n<sizeof(sequence)/sizeof(sequence[0]);++n) {
+        hall_sample(sequence[n],2);assert(g_tune_hall_changes==n);
+        hall_sample(sequence[n],1);assert(g_tune_hall_state==sequence[n]);
+    }
+    assert(g_tune_hall_changes==12 && g_tune_hall_seen==0x7eu);
+    assert(g_tune_hall_multibit==0 && g_tune_hall_period_ticks==3);
+    hall_sample(6,3);assert(g_tune_hall_multibit==1);
+    hall_sample(7,3);hall_sample(0,3);
+    assert(g_tune_hall_invalid==2 && g_tune_hall_multibit==2);
+    assert(test_gpiob.ODR==0 && test_tim1.BDTR==0 && g_tune_state==0);
+}
+#endif
 
 TestDwt test_dwt;
 TestGpio test_gpiob,test_gpioc;
@@ -24,7 +55,8 @@ int main(void)
     memset(stored,0xff,sizeof(stored));
     repo_tune_init();
 #ifdef REPO_MOTION_24V
-    assert(g_tune_interface_version==0x00010006u);
+    assert(g_tune_interface_version==0x0001000Eu);
+    hall_test();
 #elif defined(REPO_TUNING_24V)
     assert(g_tune_interface_version==0x00010005u);
 #else
@@ -86,6 +118,23 @@ int main(void)
     for(unsigned n=0;n<120001u;++n) repo_tune_control_tick(n,6,0,phase,&vd,&vq);
     poll(true);assert(repo_tune_take_stop());
     repo_tune_disarm();poll(false);
+    for(unsigned amps=1;amps<=5;++amps) {
+        g_tune_amplitude=(float)amps;g_tune_voltage_limit=tune_motion_voltage_ceiling((float)amps);
+        ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+        ++g_tune_start_seq;poll(false);assert(!repo_tune_take_start());
+        ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+        for(unsigned n=0;n<120001u;++n) repo_tune_control_tick(n,(float)amps,0,phase,&vd,&vq);
+        poll(true);assert(repo_tune_take_stop());
+        repo_tune_disarm();poll(false);
+    }
+    g_tune_amplitude=5;g_tune_voltage_limit=3.2f;g_tune_duration=0;
+    ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
+    ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());
+    for(unsigned n=0;n<220000u;++n) repo_tune_control_tick(n,5,0,phase,&vd,&vq);
+    poll(true);assert(!repo_tune_take_stop()); // Continues beyond the bounded cycle.
+    ++g_tune_stop_seq;poll(true);assert(repo_tune_take_stop());
+    repo_tune_disarm();poll(false);
+    g_tune_amplitude=6;g_tune_voltage_limit=4;
     g_tune_duration=0;++g_tune_apply_seq;poll(true);assert(g_tune_result==2);
     ++g_tune_apply_seq;poll(false);assert(g_tune_result==0);
     ++g_tune_start_seq;poll(true);assert(repo_tune_take_start());

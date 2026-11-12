@@ -68,7 +68,35 @@ int main(void)
     assert(current_tuning_valid(&p));
     p.axis=1;assert(!current_tuning_valid(&p));p.axis=0;
     p.duration=6.01f;assert(!current_tuning_valid(&p));p.duration=6.0f;
-    p.amplitude=5;assert(!current_tuning_valid(&p));p.amplitude=6;
+    p.amplitude=5;assert(!current_tuning_valid(&p)); // 5 A ceiling must be <=3.2 V
+    p.voltage_limit=3.2f;assert(current_tuning_valid(&p));
+    p.voltage_limit=3.21f;assert(!current_tuning_valid(&p));
+    p.voltage_limit=3.2f;p.duration=0;assert(current_tuning_valid(&p));
+    p.duration=21;assert(!current_tuning_valid(&p));
+    p.duration=6;p.amplitude=5.01f;assert(!current_tuning_valid(&p));
+    const float five_decay=expf(-0.6f*DT_CURRENT/0.0003f);
+    for(unsigned amps=1;amps<=5;++amps) {
+        p.amplitude=(float)amps;p.duration=6;p.voltage_limit=tune_motion_voltage_ceiling(p.amplitude);
+        assert(current_tuning_valid(&p));
+        p.voltage_limit+=0.01f;assert(!current_tuning_valid(&p));p.voltage_limit-=0.01f;
+        p.duration=0;assert(current_tuning_valid(&p)==(amps==5u));p.duration=6;
+        current_tuning_init(&s,&p);current_tuning_start(&s);
+        float id=0;
+        for(unsigned n=0;n<120001u;++n) {
+            current_tuning_field_angle(&s);current_tuning_step(&s,id,0);
+            id=id*five_decay+s.vd/0.6f*(1-five_decay);
+            assert(hypotf(s.vd,s.vq)<=p.voltage_limit+0.00001f);
+            if(n==18000u) assert(fabsf(id-p.amplitude)<0.02f && !s.saturated);
+            if(n==70000u) assert(fabsf(s.mechanical_position-FOC_TWO_PI)<1e-4f);
+        }
+        assert(!s.active && s.completed && s.half_moves==2 && s.vd==0);
+        assert(tune_motion_filtered_trip(p.amplitude)>p.amplitude);
+        assert(tune_motion_raw_trip(p.amplitude)>tune_motion_filtered_trip(p.amplitude));
+    }
+    assert(tune_motion_filtered_trip(1)==1.5f && tune_motion_raw_trip(1)==2);
+    assert(tune_motion_filtered_trip(5)==6.5f && tune_motion_raw_trip(5)==7);
+    p.amplitude=0;assert(!current_tuning_valid(&p));
+    p.amplitude=6;p.voltage_limit=4;
     p.voltage_limit=4.01f;assert(!current_tuning_valid(&p));p.voltage_limit=4;
     const float motion_decay=expf(-0.6f*DT_CURRENT/0.0003f);
     for(unsigned continuous=0;continuous<2;++continuous) {
@@ -92,6 +120,19 @@ int main(void)
         } else assert(!s.active && s.completed && s.half_moves==2u);
         assert(s.vd==0 && s.vq==0);
     }
+    // Continuous 5A uses the same repeated trajectory and retains its 3.2V bound.
+    p.amplitude=5;p.duration=0;p.voltage_limit=3.2f;
+    assert(current_tuning_valid(&p));
+    current_tuning_init(&s,&p);current_tuning_start(&s);
+    float scope_id=0;
+    for(unsigned n=0;n<220000u;++n) {
+        current_tuning_step(&s,scope_id,0);
+        scope_id=scope_id*motion_decay+s.vd/0.6f*(1-motion_decay);
+        assert(hypotf(s.vd,s.vq)<=3.20001f);
+        if(n==18000u) assert(fabsf(scope_id-5.0f)<0.02f);
+    }
+    assert(s.active && !s.completed && s.half_moves==4u);
+    current_tuning_stop(&s);assert(!s.active && s.vd==0 && s.vq==0);
     p=settings();p.amplitude=0.51f;assert(!current_tuning_valid(&p));
     p=settings();p.voltage_limit=2.01f;assert(!current_tuning_valid(&p));
     p=settings();p.mode=TUNE_VOLTAGE_STEP;p.amplitude=0.101f;

@@ -5,6 +5,9 @@
 #include "config.h"
 #include "stm32f4xx.h"
 #include "recorder.h"
+#ifdef REPO_MOTION_24V
+#include "hall_inputs.h"
+#endif
 
 volatile float g_tune_mode=TUNE_CURRENT_STEP,g_tune_axis,g_tune_amplitude=0.5f;
 volatile float g_tune_kp=0.2f,g_tune_ki=50,g_tune_f_start=5,g_tune_f_end=200;
@@ -12,7 +15,7 @@ volatile float g_tune_duration=1,g_tune_voltage_limit=0.75f;
 // RAM interface version also keeps editable scalars away from the SRAM boundary
 // that MCUViewer 1.4 currently excludes during automatic address resolution.
 #ifdef REPO_MOTION_24V
-#define TUNE_INTERFACE_VERSION 0x00010006u
+#define TUNE_INTERFACE_VERSION 0x0001000Eu
 #elif defined(REPO_TUNING_24V)
 #define TUNE_INTERFACE_VERSION 0x00010005u
 #else
@@ -31,6 +34,37 @@ static uint32_t applied,started,stopped,saved;
 static bool start_requested,stop_requested,config_ok;
 static bool loaded_nv;
 static float loaded_kp,loaded_ki;
+
+#ifdef REPO_MOTION_24V
+volatile uint32_t g_tune_hall_raw,g_tune_hall_state,g_tune_hall_changes;
+volatile uint32_t g_tune_hall_seen,g_tune_hall_invalid,g_tune_hall_multibit;
+volatile uint32_t g_tune_hall_period_ticks;
+static uint32_t hall_ticks,hall_edge,hall_candidate,hall_count;
+static bool hall_ready;
+
+// Observation only: no Hall value can arm, stop or steer the motor.
+// Three consecutive 20 kHz samples qualify a state (100..150 us delay).
+void repo_tune_hall_tick(void)
+{
+    ++hall_ticks;
+    const uint32_t raw=hall_inputs_read();
+    g_tune_hall_raw=raw;
+    if(raw!=hall_candidate) {hall_candidate=raw;hall_count=1u;}
+    else if(hall_count<3u) ++hall_count;
+    if(hall_count<3u || (hall_ready && raw==g_tune_hall_state)) return;
+    if(hall_ready) {
+        const uint32_t changed=raw^g_tune_hall_state;
+        if((changed & (changed-1u))!=0u) ++g_tune_hall_multibit;
+        g_tune_hall_period_ticks=g_tune_hall_changes ? hall_ticks-hall_edge : 0u;
+        ++g_tune_hall_changes;
+    }
+    hall_ready=true;hall_edge=hall_ticks;
+    g_tune_hall_state=raw;
+    g_tune_hall_seen|=1u<<raw;
+    // Diagnostic only; 000/111 are invalid under the 120-electrical-degree assumption.
+    if(raw==0u || raw==7u) ++g_tune_hall_invalid;
+}
+#endif
 
 static CurrentTuneConfig requested(void)
 {
